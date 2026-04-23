@@ -60,20 +60,26 @@
 - [ ] 도구 페이지와 가이드 간 양방향 내부 링크
 - [ ] 영문 맞춤법·문법 점검 (Grammarly 등)
 
-## Phase 3 — OCI 배포 + Let's Encrypt + 첫 CI/CD (1~2일)
+## Phase 3 — OCI 배포 + Let's Encrypt + 첫 CI/CD (1~2일) — **사이트 라이브 2026-04-23**
 
 플레이북 Phase 2~4 와 `06-deployment-and-domain.md` 참고.
 
-- [ ] DNS A 레코드 추가 (registrar 콘솔)
-  - [ ] `<SITE_HOST>` → OCI Reserved Public IP
-  - [ ] (옵션) `<API_HOST>` → OCI Reserved Public IP (백엔드용, Phase 6 에 사용)
-- [ ] OCI Security List 80/443 ingress (이미 bidMaster 에 열려 있으면 재확인만)
-- [ ] `deploy/nginx/<site>.conf` 작성 및 VM 에 업로드
-- [ ] `deploy/scripts/bootstrap.sh` — 플레이북 7-4 템플릿 기반, **공유 VM 감지·비파괴 모드**
-- [ ] Let's Encrypt 발급 (`certbot --nginx -d <site>.aidalabs.kr`)
-- [ ] `.github/workflows/deploy-site.yml` 작성 (플레이북 7-5)
-- [ ] GitHub Secrets: `OCI_HOST`, `OCI_SSH_USER`, `OCI_SSH_KEY`
-- [ ] `curl -I https://<site>.aidalabs.kr` 200 확인
+- [x] DNS A 레코드 추가 (registrar 콘솔)
+  - [x] `beautifier.aidalabs.kr` → `161.33.16.213`
+  - [ ] `beautifier-api.aidalabs.kr` → (Phase 6 시작 시 등록)
+- [x] OCI Security List 80/443 ingress (bidMaster 에서 이미 열려 있어 재확인만)
+- [x] `deploy/nginx/beautifier.aidalabs.kr.conf` 작성 및 VM 에 업로드 (`~/beautifier-setup/`)
+- [x] `deploy/scripts/bootstrap.sh` — 공유 VM 감지·비파괴 모드, 4개 사이트 공존 (`aidalabs`, `bidmaster`, `bidmaster-app`, `beautifier`)
+- [x] Let's Encrypt 발급: `/etc/letsencrypt/live/beautifier.aidalabs.kr/` — 2026-07-22 만료, 자동 갱신 cron 등록
+- [x] 최초 배포: 로컬 build → tar pipe → `/var/www/beautifier/` (rsync 대신 tar 로 1회성)
+- [x] `https://beautifier.aidalabs.kr/` · `/json/` · `/about/` · `/privacy/` · `/terms/` · `/contact/` · `/sitemap-index.xml` · `/robots.txt` 전부 200
+- [x] HTTP → HTTPS 301 리디렉트 활성
+- [x] bidMaster 회귀 없음 (bidmaster.aidalabs.kr 200 유지)
+- [x] `.github/workflows/deploy-site.yml` 작성 완료
+- [x] GitHub repo 생성: https://github.com/aidalabs2026/beautifier (public)
+- [x] GitHub Secrets 3개 등록: `OCI_HOST=161.33.16.213`, `OCI_SSH_USER=ubuntu`, `OCI_SSH_KEY` (bidMaster 와 동일 키 재사용)
+- [x] 첫 `git push -u origin main` → CI 통과 · Deploy Static Site 통과 (재실행 1회, Secrets 등록 타이밍 이슈)
+- [x] 자동 배포 파이프라인 가동 중: 이후 `site/**` 변경 후 push 하면 자동 rsync + nginx reload
 
 ## Phase 4 — SEO 최적화 + Search Console 등록 (1~2일)
 
