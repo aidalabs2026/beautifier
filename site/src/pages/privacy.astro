@@ -1,0 +1,157 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { CONTACT_EMAIL, SITE_NAME, SITE_URL } from '~/consts';
+const lastUpdated = '2026-04-23';
+---
+
+<BaseLayout
+  title="Privacy Policy"
+  description={`How ${SITE_NAME} handles your data: what stays on your device, what (little) we log on the server, and how third-party ads work.`}
+>
+  <article class="prose">
+    <h1>Privacy Policy</h1>
+    <p><em>Last updated: {lastUpdated}</em></p>
+
+    <p>
+      This Privacy Policy describes how {SITE_NAME} (the "Service"), reachable
+      at <a href={SITE_URL}>{SITE_URL}</a>, handles information when you visit
+      or use the site. We have written this document in plain English, with
+      additional notes for users in regulated regions at the end.
+    </p>
+
+    <h2>1. Data processed in your browser</h2>
+    <p>
+      The JSON, XML, and HTML tools on this site parse and format your input
+      entirely on your own device. The content you paste into the editor is
+      processed inside a dedicated Web Worker in your browser and is
+      <strong>not uploaded to our servers</strong>. You can verify this by
+      opening your browser's developer tools and watching the Network tab
+      while you click Beautify, Minify, or Validate — no request containing
+      your content is sent.
+    </p>
+    <p>
+      If a future feature requires sending content to a server (for example,
+      a large-file API described in our roadmap), that feature will ask for
+      explicit consent before any upload happens.
+    </p>
+
+    <h2>2. Access logs we collect</h2>
+    <p>Like almost every web server, ours writes brief access logs for the pages it serves. Each log line contains:</p>
+    <ul>
+      <li>IP address</li>
+      <li>Timestamp</li>
+      <li>Requested URL and HTTP method</li>
+      <li>HTTP status code and response size</li>
+      <li>User-Agent and Referer headers supplied by your browser</li>
+    </ul>
+    <p>
+      We use these logs for security monitoring (rate-limiting abusive traffic),
+      debugging, and aggregate traffic statistics. Logs are rotated periodically
+      and are not joined with the content you type into the editor.
+    </p>
+
+    <h2>3. Cookies</h2>
+    <p>The Service uses cookies and similar storage for these limited purposes:</p>
+    <ul>
+      <li>
+        <strong>Preference storage</strong> — we store your theme choice
+        (light or dark) in <code>localStorage</code> on your device. This is
+        not sent to any server.
+      </li>
+      <li>
+        <strong>Google AdSense cookies</strong> — once enabled, Google and
+        its partners use cookies to serve ads based on your prior visits to
+        this Service and other websites. See section&nbsp;4 below.
+      </li>
+      <li>
+        <strong>Analytics (optional)</strong> — we may run Google Analytics 4
+        with IP anonymization. If present, GA4 cookies identify a returning
+        browser but do not see the content you paste into the tool.
+      </li>
+    </ul>
+    <p>
+      You can disable or delete cookies in your browser settings at any time.
+      Some preferences (such as dark mode) will simply reset.
+    </p>
+
+    <h2>4. Third-party advertising (Google AdSense)</h2>
+    <p>
+      This site participates in the Google AdSense program. Third-party vendors,
+      including Google, may show ads on this site and may use cookies to serve
+      ads based on your prior visits to this site or other websites. Google's
+      use of advertising cookies enables it and its partners to serve ads to
+      you based on your visit to our site and other sites on the Internet.
+    </p>
+    <p>
+      You may opt out of personalised advertising by visiting
+      <a href="https://www.google.com/settings/ads" rel="nofollow noopener">Google Ads Settings</a>,
+      or opt out of a third-party vendor's use of cookies for personalised
+      advertising at
+      <a href="https://www.aboutads.info/choices/" rel="nofollow noopener">aboutads.info/choices</a>.
+    </p>
+
+    <h2>5. Contact form submissions</h2>
+    <p>
+      If you use the <a href="/contact/">contact form</a>, your submission is
+      delivered via FormSubmit, which forwards your message to our email inbox.
+      Your message, email address, and any other fields you fill in are handled
+      by FormSubmit and by our email provider for as long as we retain the
+      correspondence.
+    </p>
+
+    <h2>6. How long we keep data</h2>
+    <ul>
+      <li>Server access logs: rotated and deleted within 60 days.</li>
+      <li>Contact form emails: retained until we no longer need them to respond to your enquiry.</li>
+      <li>Cookies and <code>localStorage</code>: controlled by your browser.</li>
+    </ul>
+
+    <h2>7. If you are in the EU / UK (GDPR)</h2>
+    <p>
+      Under the GDPR, you have the right to access, correct, or erase personal
+      data we hold about you, and to object to or restrict certain processing.
+      Because the Service does not operate accounts and does not store your
+      tool inputs, the data we realistically hold about a visitor is limited
+      to access logs and any contact emails you have sent. You can exercise
+      your rights by emailing
+      <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+    </p>
+
+    <h2>8. If you are in California (CCPA / CPRA)</h2>
+    <p>
+      California residents have the right to know what personal information a
+      business collects and the right to request its deletion. The Service does
+      not sell personal information. To make a request, email
+      <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+    </p>
+
+    <h2>9. If you are in Korea</h2>
+    <p>
+      This Service is operated from South Korea. To the extent the
+      <em>Personal Information Protection Act</em> applies, we act as the
+      controller of the limited personal information described above. Access,
+      correction, and deletion requests can be submitted to
+      <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+    </p>
+
+    <h2>10. Children</h2>
+    <p>
+      The Service is intended for a general developer audience and is not
+      directed at children under 13. We do not knowingly collect personal
+      information from children.
+    </p>
+
+    <h2>11. Changes to this policy</h2>
+    <p>
+      We may update this Privacy Policy as the Service evolves. The
+      "Last updated" date at the top of this page reflects the most recent
+      revision. Material changes will be noted at the top of the page.
+    </p>
+
+    <h2>12. Contact</h2>
+    <p>
+      Questions about this policy can be sent to
+      <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+    </p>
+  </article>
+</BaseLayout>

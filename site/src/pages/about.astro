@@ -1,0 +1,79 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { CONTACT_EMAIL, SITE_NAME } from '~/consts';
+---
+
+<BaseLayout
+  title="About"
+  description={`About ${SITE_NAME}: what this site is, who runs it, and why we're building another JSON beautifier in the first place.`}
+>
+  <article class="prose">
+    <h1>About {SITE_NAME}</h1>
+
+    <p>
+      {SITE_NAME} is an independent, ad-supported developer utility.
+      Our goal is simple: a fast, accurate, privacy-respecting way to format,
+      minify, and validate JSON — with XML and HTML to follow — combined with
+      short, honest explanations of what each format actually is.
+    </p>
+
+    <h2>What makes this different</h2>
+    <p>
+      Every major "JSON formatter" site is battling two problems at once:
+      they need to make money, and they are competing with a crowded market.
+      That usually ends with aggressive ad stacks, slow pages on mobile, or
+      both. We took a different approach:
+    </p>
+    <ul>
+      <li>
+        <strong>No ads in the first fold of the tool itself.</strong> If
+        you're here to debug a broken API response, you should be able to see
+        the error on line 47 without scrolling past a leaderboard.
+      </li>
+      <li>
+        <strong>All parsing happens on your device.</strong> JSON.parse runs
+        inside a dedicated Web Worker in your browser. We don't have a server
+        that sees your inputs.
+      </li>
+      <li>
+        <strong>Each format comes with a guide.</strong> If you're new to JSON
+        Schema or JSONL, we'd rather give you a 3-minute read than send you
+        back to search results.
+      </li>
+    </ul>
+
+    <h2>Who runs this</h2>
+    <p>
+      {SITE_NAME} is a one-person project operated from South Korea as part of
+      a portfolio of small, focused web utilities. It is not affiliated with
+      Google, any ad network, or any specific JSON parser. If you want to get
+      in touch, use the <a href="/contact/">contact page</a> or email us at
+      <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+    </p>
+
+    <h2>How it's built</h2>
+    <p>
+      The site is a static Astro build served by Nginx on an Oracle Cloud
+      Always Free instance. The JSON engine runs in a browser Web Worker so
+      the main thread stays responsive even when you paste a 5&nbsp;MB payload.
+      There is no user account, no tracking pixel for your inputs, and no
+      third-party analytics of your JSON. See the
+      <a href="/privacy/">Privacy Policy</a> for the full picture.
+    </p>
+
+    <h2>Roadmap in brief</h2>
+    <ul>
+      <li>JSON tool with beautify / minify / validate / sort keys — <em>available now</em></li>
+      <li>Guides &amp; glossary for JSON fundamentals — <em>in progress</em></li>
+      <li>XML and HTML beautifiers — <em>next</em></li>
+      <li>REST API for large payloads (&gt; 10&nbsp;MB) — <em>later</em></li>
+    </ul>
+
+    <h2>Support the project</h2>
+    <p>
+      If this tool saves you time, the best thing you can do is tell a teammate
+      about it. Ad revenue funds the server bill; good word-of-mouth funds the
+      motivation to keep it fast and ad-light.
+    </p>
+  </article>
+</BaseLayout>

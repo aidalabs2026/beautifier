@@ -1,0 +1,481 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="JSON Beautifier, Minifier &amp; Validator"
+  description="Format, minify, and validate JSON in your browser. Choose 2-space, 4-space or tab indentation, sort keys alphabetically, and see line-accurate syntax error messages. Your data never leaves your device."
+>
+  <div class="tool-page">
+    <div class="container tool-head">
+      <span class="privacy-badge">🔒 Your data never leaves your browser</span>
+      <h1>JSON Beautifier</h1>
+      <p class="tool-intro">
+        Paste JSON below and click <strong>Beautify</strong>. Use <strong>Minify</strong>
+        to strip whitespace for smaller payloads, or <strong>Validate</strong>
+        to surface syntax errors with the exact line and column.
+      </p>
+    </div>
+
+    <div class="container">
+      <div class="editor-grid">
+        <section class="editor-pane" aria-labelledby="input-label">
+          <div class="pane-head">
+            <label id="input-label" for="input">Input</label>
+            <div class="pane-actions">
+              <label class="btn btn-sm file-label">
+                Upload file
+                <input type="file" id="file-input" accept=".json,.txt,.jsonl,.ndjson,application/json" hidden />
+              </label>
+              <button type="button" class="btn btn-sm" id="clear-btn">Clear</button>
+            </div>
+          </div>
+          <textarea
+            id="input"
+            class="editor-textarea"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            placeholder={'Paste JSON here, for example:\n\n{\n  "name": "Ada",\n  "role": "engineer",\n  "skills": ["math", "algorithms"]\n}'}
+          ></textarea>
+          <div class="pane-meta" id="input-meta"></div>
+        </section>
+
+        <section class="editor-pane" aria-labelledby="output-label">
+          <div class="pane-head">
+            <label id="output-label" for="output">Output</label>
+            <div class="pane-actions">
+              <button type="button" class="btn btn-sm" id="copy-btn" disabled>Copy</button>
+              <button type="button" class="btn btn-sm" id="download-btn" disabled>Download</button>
+            </div>
+          </div>
+          <textarea
+            id="output"
+            class="editor-textarea"
+            spellcheck="false"
+            autocomplete="off"
+            readonly
+            placeholder="Output appears here…"
+          ></textarea>
+          <div class="pane-meta" id="output-meta"></div>
+        </section>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-buttons">
+          <button type="button" class="btn btn-primary" id="beautify-btn">Beautify</button>
+          <button type="button" class="btn" id="minify-btn">Minify</button>
+          <button type="button" class="btn" id="validate-btn">Validate</button>
+        </div>
+        <div class="toolbar-options">
+          <label>
+            Indent:
+            <select id="indent-select">
+              <option value="2" selected>2 spaces</option>
+              <option value="4">4 spaces</option>
+              <option value="tab">Tab</option>
+            </select>
+          </label>
+          <label>
+            <input type="checkbox" id="sort-keys" />
+            Sort keys alphabetically
+          </label>
+        </div>
+      </div>
+
+      <div id="status-bar" class="status-bar status-idle" role="status" aria-live="polite">
+        Ready. Keyboard: <kbd>Ctrl</kbd>+<kbd>Enter</kbd> Beautify · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> Minify · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> Validate · <kbd>Ctrl</kbd>+<kbd>K</kbd> Clear
+      </div>
+    </div>
+
+    <noscript>
+      <div class="container">
+        <div class="callout callout-warning">
+          This tool requires JavaScript to run. Please enable JavaScript in your browser.
+        </div>
+      </div>
+    </noscript>
+
+    <section class="prose">
+      <h2>What is JSON?</h2>
+      <p>
+        JSON (JavaScript Object Notation) is a lightweight, text-based data
+        interchange format standardised in
+        <a href="https://datatracker.ietf.org/doc/html/rfc8259" rel="nofollow noopener">RFC&nbsp;8259</a>
+        and <a href="https://www.ecma-international.org/publications-and-standards/standards/ecma-404/" rel="nofollow noopener">ECMA-404</a>.
+        It maps cleanly to the data types available in most programming languages —
+        objects, arrays, strings, numbers, booleans, and <code>null</code> — which
+        is why it has become the default wire format for modern web APIs.
+      </p>
+
+      <h2>When to beautify vs. minify</h2>
+      <ul>
+        <li><strong>Beautify</strong> when you need to read a response, diff two payloads, or paste an example into docs.</li>
+        <li><strong>Minify</strong> when you want to reduce network bandwidth — for instance, when embedding a config into a query string or a data URI.</li>
+        <li><strong>Validate</strong> whenever a downstream parser rejects your input: the error line and column typically point within a few characters of the real problem (usually a missing quote, comma, or brace).</li>
+      </ul>
+
+      <h2>Common JSON gotchas</h2>
+      <ul>
+        <li><strong>Trailing commas</strong> — allowed in JavaScript object literals, rejected by strict JSON parsers.</li>
+        <li><strong>Single quotes</strong> — JSON requires double quotes around keys and strings.</li>
+        <li><strong>Unquoted keys</strong> — a frequent copy-from-JavaScript mistake.</li>
+        <li><strong>Comments</strong> — not part of the JSON specification. Use JSONC or JSON5 if you truly need them.</li>
+      </ul>
+
+      <h2>Privacy notes</h2>
+      <p>
+        This page never uploads your JSON. All parsing and formatting runs in a
+        dedicated Web Worker inside your browser. You can verify this by opening
+        your browser's DevTools Network tab while clicking Beautify — no request
+        leaves your device. See our <a href="/privacy/">Privacy Policy</a> for details.
+      </p>
+    </section>
+  </div>
+
+  <style>
+    .tool-page { padding: 1.5rem 0 3rem; }
+    .tool-head {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .tool-head h1 { margin: 0.1em 0 0.25em; font-size: 1.9rem; }
+    .tool-intro { color: var(--color-text-muted); margin: 0; max-width: 780px; }
+
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      height: clamp(480px, calc(100vh - 340px), 820px);
+    }
+    .editor-pane {
+      display: flex;
+      flex-direction: column;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      min-height: 0;
+    }
+    .pane-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg-alt);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .pane-head label { font-weight: 600; }
+    .pane-actions { display: flex; gap: 0.35rem; }
+    .file-label { cursor: pointer; display: inline-flex; align-items: center; }
+    .editor-textarea {
+      flex: 1 1 auto;
+      min-height: 0;
+      height: 100%;
+      width: 100%;
+      resize: none;
+      border: 0;
+      padding: 0.9rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: var(--color-text);
+      background: var(--color-surface);
+      white-space: pre;
+      tab-size: 2;
+    }
+    .editor-textarea:focus { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+    .pane-meta {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      border-top: 1px solid var(--color-border);
+      background: var(--color-bg-alt);
+      min-height: 1.75rem;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin: 1rem 0 0.5rem;
+    }
+    .toolbar-buttons, .toolbar-options {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .toolbar-options label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+    }
+    .toolbar-options select {
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font: inherit;
+      font-size: 0.9rem;
+    }
+
+    .status-bar {
+      padding: 0.6rem 0.85rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      border: 1px solid var(--color-border);
+      background: var(--color-bg-alt);
+      color: var(--color-text-muted);
+    }
+    .status-bar kbd {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-bottom-width: 2px;
+      border-radius: 3px;
+      padding: 0 0.3rem;
+      color: var(--color-text);
+    }
+    .status-success { border-color: var(--color-success); background: var(--color-success-bg); color: var(--color-success); }
+    .status-error { border-color: var(--color-error); background: var(--color-error-bg); color: var(--color-error); }
+
+    @media (max-width: 820px) {
+      .editor-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .editor-pane { height: 60vh; min-height: 340px; }
+    }
+  </style>
+
+  <script>
+    import type { WorkerRequest, WorkerResponse, IndentValue, Operation } from '~/workers/json-worker';
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+    const input = document.getElementById('input') as HTMLTextAreaElement;
+    const output = document.getElementById('output') as HTMLTextAreaElement;
+    const beautifyBtn = document.getElementById('beautify-btn') as HTMLButtonElement;
+    const minifyBtn = document.getElementById('minify-btn') as HTMLButtonElement;
+    const validateBtn = document.getElementById('validate-btn') as HTMLButtonElement;
+    const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement;
+    const copyBtn = document.getElementById('copy-btn') as HTMLButtonElement;
+    const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
+    const fileInput = document.getElementById('file-input') as HTMLInputElement;
+    const indentSelect = document.getElementById('indent-select') as HTMLSelectElement;
+    const sortKeysCheckbox = document.getElementById('sort-keys') as HTMLInputElement;
+    const statusBar = document.getElementById('status-bar') as HTMLElement;
+    const inputMeta = document.getElementById('input-meta') as HTMLElement;
+    const outputMeta = document.getElementById('output-meta') as HTMLElement;
+
+    let worker: Worker | null = null;
+
+    function getWorker(): Worker {
+      if (!worker) {
+        worker = new Worker(
+          new URL('../workers/json-worker.ts', import.meta.url),
+          { type: 'module' }
+        );
+        worker.onmessage = (ev: MessageEvent<WorkerResponse>) => handleResponse(ev.data);
+      }
+      return worker;
+    }
+
+    function getIndent(): IndentValue {
+      const v = indentSelect.value;
+      if (v === 'tab') return '\t';
+      if (v === '4') return 4;
+      return 2;
+    }
+
+    function setStatus(kind: 'idle' | 'success' | 'error', html: string) {
+      statusBar.className = 'status-bar ' + (
+        kind === 'success' ? 'status-success'
+        : kind === 'error' ? 'status-error'
+        : 'status-idle'
+      );
+      statusBar.innerHTML = html;
+    }
+
+    function formatBytes(bytes: number): string {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function updateInputMeta() {
+      const text = input.value;
+      const bytes = new TextEncoder().encode(text).length;
+      const lines = text ? text.split('\n').length : 0;
+      inputMeta.textContent = text
+        ? `${formatBytes(bytes)} · ${lines.toLocaleString()} line${lines === 1 ? '' : 's'}`
+        : '';
+    }
+
+    function updateOutputMeta(size: number, durationMs: number) {
+      outputMeta.textContent = `${formatBytes(size)} · ${durationMs.toFixed(1)} ms`;
+    }
+
+    function run(op: Operation) {
+      const text = input.value;
+      if (!text.trim()) {
+        setStatus('error', 'Input is empty — paste some JSON first.');
+        return;
+      }
+      setStatus('idle', `<strong>${op[0].toUpperCase() + op.slice(1)}ing…</strong>`);
+      const req: WorkerRequest = {
+        op,
+        input: text,
+        indent: getIndent(),
+        sortKeys: sortKeysCheckbox.checked,
+      };
+      getWorker().postMessage(req);
+    }
+
+    function handleResponse(msg: WorkerResponse) {
+      if (msg.type === 'result') {
+        if (msg.op === 'validate') {
+          output.value = '';
+          outputMeta.textContent = '';
+          copyBtn.disabled = true;
+          downloadBtn.disabled = true;
+          setStatus('success', `✓ Valid JSON · parsed in ${msg.durationMs.toFixed(1)} ms`);
+        } else {
+          output.value = msg.output;
+          updateOutputMeta(msg.size, msg.durationMs);
+          copyBtn.disabled = false;
+          downloadBtn.disabled = false;
+          const label = msg.op === 'minify' ? 'Minified' : 'Beautified';
+          setStatus('success', `✓ ${label} · ${formatBytes(msg.size)} in ${msg.durationMs.toFixed(1)} ms`);
+        }
+      } else {
+        output.value = '';
+        copyBtn.disabled = true;
+        downloadBtn.disabled = true;
+        outputMeta.textContent = '';
+        const location =
+          msg.line !== undefined && msg.column !== undefined
+            ? ` <strong>Line ${msg.line}, column ${msg.column}.</strong>`
+            : '';
+        setStatus('error', `✗ ${escapeHtml(msg.message)}.${location}`);
+        if (msg.line !== undefined) {
+          positionCaretAt(input, msg.line, msg.column ?? 1);
+          input.focus();
+        }
+      }
+    }
+
+    function escapeHtml(s: string): string {
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function positionCaretAt(ta: HTMLTextAreaElement, line: number, column: number) {
+      const lines = ta.value.split('\n');
+      let offset = 0;
+      for (let i = 0; i < Math.min(line - 1, lines.length); i++) {
+        offset += lines[i].length + 1;
+      }
+      offset += Math.max(0, column - 1);
+      ta.setSelectionRange(offset, offset);
+    }
+
+    async function copyOutput() {
+      if (!output.value) return;
+      try {
+        await navigator.clipboard.writeText(output.value);
+        setStatus('success', '✓ Copied to clipboard');
+      } catch {
+        output.select();
+        document.execCommand('copy');
+        setStatus('success', '✓ Copied to clipboard');
+      }
+    }
+
+    function downloadOutput() {
+      if (!output.value) return;
+      const blob = new Blob([output.value], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'beautified.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function clearAll() {
+      input.value = '';
+      output.value = '';
+      inputMeta.textContent = '';
+      outputMeta.textContent = '';
+      copyBtn.disabled = true;
+      downloadBtn.disabled = true;
+      setStatus('idle', 'Cleared.');
+      input.focus();
+    }
+
+    function handleFile(file: File) {
+      if (file.size > MAX_FILE_SIZE) {
+        setStatus('error', `File is ${formatBytes(file.size)}. Maximum upload size in the browser MVP is ${formatBytes(MAX_FILE_SIZE)}.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        input.value = String(reader.result ?? '');
+        updateInputMeta();
+        setStatus('idle', `Loaded ${escapeHtml(file.name)} (${formatBytes(file.size)}).`);
+      };
+      reader.onerror = () => setStatus('error', 'Failed to read file.');
+      reader.readAsText(file);
+    }
+
+    // Event wiring
+    beautifyBtn.addEventListener('click', () => run('beautify'));
+    minifyBtn.addEventListener('click', () => run('minify'));
+    validateBtn.addEventListener('click', () => run('validate'));
+    clearBtn.addEventListener('click', clearAll);
+    copyBtn.addEventListener('click', copyOutput);
+    downloadBtn.addEventListener('click', downloadOutput);
+    input.addEventListener('input', updateInputMeta);
+    fileInput.addEventListener('change', (e) => {
+      const f = (e.target as HTMLInputElement).files?.[0];
+      if (f) handleFile(f);
+      fileInput.value = '';
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === 'Enter') { e.preventDefault(); run('beautify'); }
+      else if (e.shiftKey && (e.key === 'M' || e.key === 'm')) { e.preventDefault(); run('minify'); }
+      else if (e.shiftKey && (e.key === 'V' || e.key === 'v')) { e.preventDefault(); run('validate'); }
+      else if (e.key === 'k' || e.key === 'K') { e.preventDefault(); clearAll(); }
+    });
+
+    // URL parameter prefill: ?input=<urlencoded>
+    const params = new URLSearchParams(window.location.search);
+    const prefill = params.get('input');
+    if (prefill) {
+      input.value = prefill;
+      updateInputMeta();
+    }
+
+    input.focus();
+  </script>
+</BaseLayout>

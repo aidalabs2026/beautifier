@@ -1,0 +1,101 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { CONTACT_EMAIL, SITE_NAME, SITE_URL } from '~/consts';
+const lastUpdated = '2026-04-23';
+---
+
+<BaseLayout
+  title="Terms of Service"
+  description={`Terms under which you use ${SITE_NAME}: what the tools do, what they don't guarantee, and the usual liability limits.`}
+>
+  <article class="prose">
+    <h1>Terms of Service</h1>
+    <p><em>Last updated: {lastUpdated}</em></p>
+
+    <p>
+      By using {SITE_NAME} (the "Service") at
+      <a href={SITE_URL}>{SITE_URL}</a>, you agree to these Terms. If you do
+      not agree, please do not use the Service.
+    </p>
+
+    <h2>1. The service</h2>
+    <p>
+      {SITE_NAME} provides free web-based tools for formatting, minifying, and
+      validating JSON and (in future) other data formats. Each tool runs
+      inside your web browser and is offered "as is" and "as available".
+    </p>
+
+    <h2>2. Permitted use</h2>
+    <ul>
+      <li>You may use the Service for lawful personal, educational, or commercial purposes.</li>
+      <li>
+        You may not use the Service to process content whose processing would
+        be illegal in your jurisdiction, including content that infringes
+        others' intellectual property or privacy rights.
+      </li>
+      <li>
+        You may not attempt to disrupt the Service — for example, by sending
+        automated requests at a rate designed to degrade availability, or by
+        probing for vulnerabilities without prior written permission.
+      </li>
+    </ul>
+
+    <h2>3. Your content</h2>
+    <p>
+      The data you paste, upload, or otherwise provide to the Service remains
+      yours. In the MVP release, your inputs are processed locally in your
+      browser and are not transmitted to our servers. If a future feature
+      requires a server upload, it will be clearly marked and will require
+      your explicit action.
+    </p>
+
+    <h2>4. No warranty</h2>
+    <p>
+      The Service is provided without warranty of any kind, express or implied.
+      We do not guarantee that the output of any tool exactly matches the
+      behaviour of any specific downstream parser. For production workloads,
+      always validate the output against your runtime's official parser (for
+      example, <code>JSON.parse</code> in your server language of choice).
+    </p>
+
+    <h2>5. Limitation of liability</h2>
+    <p>
+      To the fullest extent permitted by law, {SITE_NAME} and its operator
+      are not liable for any indirect, incidental, consequential, special, or
+      punitive damages arising out of or related to your use of the Service,
+      including but not limited to data loss, lost profits, or business
+      interruption. Our aggregate liability to you for any claim arising out
+      of the Service is limited to USD 0 (the Service is free).
+    </p>
+
+    <h2>6. Third-party links and ads</h2>
+    <p>
+      The Service may display advertisements served by Google AdSense and may
+      link to third-party websites. We are not responsible for the content,
+      privacy practices, or availability of any third-party site or
+      advertisement.
+    </p>
+
+    <h2>7. Changes</h2>
+    <p>
+      We may modify these Terms as the Service evolves. The "Last updated"
+      date at the top of this page reflects the most recent revision. Your
+      continued use of the Service after a change constitutes acceptance of
+      the updated Terms.
+    </p>
+
+    <h2>8. Governing law</h2>
+    <p>
+      These Terms are governed by the laws of the Republic of Korea, without
+      regard to conflict-of-laws principles, to the extent that mandatory
+      consumer protection laws of your place of residence do not provide
+      otherwise.
+    </p>
+
+    <h2>9. Contact</h2>
+    <p>
+      Questions about these Terms can be sent to
+      <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+    </p>
+  </article>
+</BaseLayout>

@@ -1,0 +1,38 @@
+# Node / Astro
+node_modules/
+dist/
+.astro/
+.cache/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# SSH keys (safety net — keys should never live in repo)
+*.key
+*.pem
+id_rsa
+id_rsa.pub
+github-deploy*
+oci_key*
+
+# Python (for future backend in Phase 6)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build artifacts
+*.tgz

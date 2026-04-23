@@ -1,0 +1,69 @@
+name: Deploy Static Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy-site.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & rsync
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: site
+        run: npm install --no-audit --no-fund
+
+      - name: Build
+        working-directory: site
+        run: npm run build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          # Windows-pasted keys often carry CRLF which breaks libcrypto.
+          printf '%s\n' "${{ secrets.OCI_SSH_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+            echo "::error::OCI_SSH_KEY secret is not a valid OpenSSH private key."
+            echo "::error::Check BEGIN/END markers, LF line endings, and a trailing blank line."
+            exit 1
+          fi
+
+          ssh-keyscan -T 10 -H "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Rsync to OCI
+        run: |
+          rsync -avz --delete --delay-updates \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            site/dist/ \
+            "${{ secrets.OCI_SSH_USER }}@${{ secrets.OCI_HOST }}:/var/www/beautifier/"
+
+      - name: Reload Nginx
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+              "${{ secrets.OCI_SSH_USER }}@${{ secrets.OCI_HOST }}" \
+              "sudo systemctl reload nginx"
+
+      - name: Smoke check
+        run: |
+          sleep 2
+          curl -sSfI "https://beautifier.aidalabs.kr/" | head -n1 || \
+            echo "Smoke check failed — first deploy or DNS/TLS still propagating"

@@ -1,0 +1,27 @@
+# Default: let Git decide per-file.
+* text=auto
+
+# Shell scripts and deploy artifacts must stay LF even when checked out on Windows.
+# They are scp'd to the Linux VM and CRLF would break bash, sudoers validation, etc.
+*.sh       text eol=lf
+*.conf     text eol=lf
+
+# Nginx/systemd service files — LF only.
+*.service  text eol=lf
+
+# YAML / JSON / Markdown — LF everywhere for cross-platform diffs.
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.json     text eol=lf
+*.md       text eol=lf
+*.mdx      text eol=lf
+
+# Images and binary assets.
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.webp     binary
+*.avif     binary
+*.ico      binary
+*.woff     binary
+*.woff2    binary

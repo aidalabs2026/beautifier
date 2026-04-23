@@ -1,0 +1,61 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Format JSON, XML, HTML in Your Browser"
+  description="Beautifier is a fast, privacy-respecting online toolkit to format, minify, and validate JSON, XML, and HTML. Nothing leaves your browser."
+>
+  <section class="hero container">
+    <span class="privacy-badge" aria-label="Privacy">
+      🔒 Your data never leaves your browser
+    </span>
+    <h1>Format code. Keep it private. Learn the format.</h1>
+    <p class="tagline">
+      Beautify, minify, and validate JSON — with XML and HTML coming soon.
+      All parsing runs on your device. No uploads. No tracking of your inputs.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/json/">Open JSON Beautifier</a>
+      <a class="btn" href="/about/">Why this tool?</a>
+    </div>
+  </section>
+
+  <section class="container">
+    <div class="card-grid">
+      <article class="card">
+        <h3>Fast by default</h3>
+        <p>Static site built with Astro. No sluggish ad-heavy layouts. 1&nbsp;MB JSON parses in under 200&nbsp;ms on modern devices.</p>
+      </article>
+      <article class="card">
+        <h3>Private by design</h3>
+        <p>JSON parsing happens in a Web Worker on your device. Your code is never sent to our servers in the MVP.</p>
+      </article>
+      <article class="card">
+        <h3>More than a tool</h3>
+        <p>Each format page ships with a short guide and a glossary of related terms so you can learn while you work.</p>
+      </article>
+      <article class="card">
+        <h3>Accessible &amp; mobile-friendly</h3>
+        <p>Keyboard shortcuts, a proper dark mode, and a layout that works on your phone during a late-night debug session.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="prose">
+    <h2>Available tools</h2>
+    <ul>
+      <li><a href="/json/">JSON Beautifier, Minifier &amp; Validator</a> — available now</li>
+      <li>XML Beautifier — coming in Phase 2</li>
+      <li>HTML Beautifier — coming in Phase 2</li>
+    </ul>
+
+    <h2>What's new</h2>
+    <p>
+      This project is in active development. The first release focuses on a
+      solid JSON tool and the legal pages required to responsibly run a public,
+      ad-supported site. Guides and additional formats will follow in the next
+      phases.
+    </p>
+  </section>
+</BaseLayout>
