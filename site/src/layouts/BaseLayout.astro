@@ -8,6 +8,8 @@ import {
   SITE_DESCRIPTION,
   SITE_URL,
   SITE_LOCALE,
+  GSC_VERIFICATION,
+  GA4_MEASUREMENT_ID,
 } from '~/consts';
 
 export interface Props {
@@ -38,6 +40,9 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site ?? SITE_URL).toString()
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content={Astro.generator} />
     {noindex && <meta name="robots" content="noindex" />}
+    {GSC_VERIFICATION && (
+      <meta name="google-site-verification" content={GSC_VERIFICATION} />
+    )}
 
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
@@ -58,6 +63,22 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site ?? SITE_URL).toString()
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="sitemap" href="/sitemap-index.xml" />
+
+    {GA4_MEASUREMENT_ID && (
+      <>
+        <script
+          is:inline
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`}
+        />
+        <script is:inline define:vars={{ ga: GA4_MEASUREMENT_ID }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', ga, { anonymize_ip: true });
+        </script>
+      </>
+    )}
 
     <!-- Inline theme init to avoid FOUC -->
     <script is:inline>

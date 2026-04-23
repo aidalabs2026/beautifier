@@ -1,5 +1,37 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
+import { SITE_NAME, SITE_URL } from '~/consts';
+
+const toolJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: `${SITE_NAME} JSON Tool`,
+  alternateName: 'JSON Beautifier, Minifier & Validator',
+  description:
+    'Free browser-based JSON beautifier, minifier, and validator. Runs entirely on your device; your data is never uploaded. Supports 2-space, 4-space, tab indentation, and alphabetical key sorting.',
+  url: SITE_URL + '/json/',
+  applicationCategory: 'DeveloperApplication',
+  applicationSubCategory: 'CodeFormatter',
+  operatingSystem: 'Any (modern web browser)',
+  browserRequirements: 'Requires JavaScript. Requires HTML5.',
+  inLanguage: 'en',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+  },
+  featureList: [
+    'Beautify JSON with configurable indentation',
+    'Minify JSON for compact payloads',
+    'Validate JSON and show syntax errors with line and column',
+    'Sort object keys alphabetically',
+    'Upload files up to 5 MB',
+    'Copy or download the formatted output',
+    'Dark mode',
+    'Keyboard shortcuts',
+  ],
+  isAccessibleForFree: true,
+};
 ---
 
 <BaseLayout
@@ -96,6 +128,8 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
         </div>
       </div>
     </noscript>
+
+    <script type="application/ld+json" set:html={JSON.stringify(toolJsonLd)} />
 
     <section class="prose">
       <h2>What is JSON?</h2>

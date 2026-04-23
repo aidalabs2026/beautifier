@@ -1,10 +1,33 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
+import { SITE_NAME, SITE_URL, SITE_DESCRIPTION } from '~/consts';
 
 const guides = (await getCollection('guides', ({ data }) => data.draft !== true))
   .sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999))
   .slice(0, 4);
+
+const siteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE_NAME,
+  url: SITE_URL + '/',
+  description: SITE_DESCRIPTION,
+  inLanguage: 'en',
+  publisher: {
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: SITE_URL + '/',
+  },
+};
+
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: SITE_NAME,
+  url: SITE_URL + '/',
+  description: SITE_DESCRIPTION,
+};
 ---
 
 <BaseLayout
@@ -73,6 +96,9 @@ const guides = (await getCollection('guides', ({ data }) => data.draft !== true)
       <li>HTML Beautifier — planned</li>
     </ul>
   </section>
+
+  <script type="application/ld+json" set:html={JSON.stringify(siteJsonLd)} />
+  <script type="application/ld+json" set:html={JSON.stringify(orgJsonLd)} />
 
   <style>
     .section-h {
