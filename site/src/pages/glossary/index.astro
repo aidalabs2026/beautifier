@@ -1,0 +1,89 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '~/layouts/BaseLayout.astro';
+
+const terms = (await getCollection('glossary'))
+  .sort((a, b) => a.data.title.localeCompare(b.data.title));
+
+// Group by first character
+const byLetter = terms.reduce<Record<string, typeof terms>>((acc, t) => {
+  const first = t.data.title[0].toUpperCase();
+  const key = /[A-Z]/.test(first) ? first : '#';
+  (acc[key] ||= []).push(t);
+  return acc;
+}, {});
+
+const letters = Object.keys(byLetter).sort();
+---
+
+<BaseLayout
+  title="Glossary"
+  description="Glossary of JSON, XML, HTML, and code-formatting terminology. Short, direct definitions with links to deeper guides where useful."
+>
+  <div class="prose">
+    <h1>Glossary</h1>
+    <p>
+      Short definitions of the terms you'll hit while wrangling JSON, XML, and
+      HTML. If a term is missing and you think it belongs, let us know via the
+      <a href="/contact/">contact page</a>.
+    </p>
+
+    <nav class="alpha-nav" aria-label="Jump to letter">
+      {letters.map((l) => (
+        <a href={`#letter-${l}`}>{l}</a>
+      ))}
+    </nav>
+
+    {letters.map((l) => (
+      <section class="glossary-group">
+        <h2 id={`letter-${l}`}>{l}</h2>
+        <ul class="glossary-list">
+          {byLetter[l].map((t) => (
+            <li>
+              <a href={`/glossary/${t.id}/`}>{t.data.title}</a>
+              <span class="term-desc"> — {t.data.description}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+
+  <style>
+    .alpha-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      padding: 0.75rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg-alt);
+      margin: 1.5rem 0;
+      font-family: var(--font-mono);
+    }
+    .alpha-nav a {
+      padding: 0.25rem 0.55rem;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: var(--color-accent);
+      font-weight: 600;
+    }
+    .alpha-nav a:hover { background: var(--color-surface); }
+
+    .glossary-group { margin-top: 2rem; }
+    .glossary-group h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.25rem;
+      border-bottom: 2px solid var(--color-accent);
+      padding-bottom: 0.25rem;
+    }
+    .glossary-list { list-style: none; padding: 0; margin: 0; }
+    .glossary-list li {
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .glossary-list li:last-child { border-bottom: 0; }
+    .glossary-list a { font-weight: 600; }
+    .term-desc { color: var(--color-text-muted); font-size: 0.95rem; }
+  </style>
+</BaseLayout>

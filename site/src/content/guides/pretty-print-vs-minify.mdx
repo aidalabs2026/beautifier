@@ -1,0 +1,143 @@
+---
+title: "Pretty-Print vs. Minify: Choosing the Right JSON Format"
+description: "Every JSON document can be formatted for humans or for bytes on the wire. This guide covers when each mode matters, what the actual savings are, and why most production answers are boring."
+category: "format-guide"
+lastUpdated: 2026-04-23
+order: 6
+tags: ["pretty-print", "minify", "json"]
+---
+
+Every JSON document lives a double life. One form is pretty-printed — indented, line-broken, easy to read. The other is minified — every character that can be removed has been removed, and the whole thing is one long line. The two forms are semantically identical; any parser produces the same data structure from either.
+
+The question, then, is when to use which. The answer is almost always obvious once you ask the right question: *what is the JSON for?* Below we walk through the three common contexts, the numbers involved, and a few edge cases that are not obvious.
+
+## The two formats, same data
+
+**Minified:**
+
+```
+{"id":42,"name":"Ada","roles":["admin","editor"],"active":true}
+```
+
+**Pretty-printed (2 spaces):**
+
+```json
+{
+  "id": 42,
+  "name": "Ada",
+  "roles": ["admin", "editor"],
+  "active": true
+}
+```
+
+Both encode the same object. A parser produces the same `{id: 42, name: "Ada", ...}` structure from either. The first is 62 bytes; the second is 93 bytes. In this tiny case, pretty-printing adds about 50% overhead. The ratio scales with depth — deeply nested structures get fluffier.
+
+## When to pretty-print
+
+- **A human is going to read it.** Debug output, README examples, API docs, test fixtures, expected-output files in snapshot tests.
+- **A human is going to diff it.** Two pretty-printed payloads produce sane line-by-line diffs. Two minified payloads produce a single-line wall of character-level noise.
+- **A human is going to edit it by hand.** Config files, seed data, unit test cases.
+- **A log viewer is going to render it.** Modern log platforms either pretty-print on display or let the viewer toggle it. If your logs are stored as JSONL, write each record minified, but show it pretty.
+
+## When to minify
+
+- **A network wants to carry it.** Every byte costs bandwidth. Over a hundred million requests, the savings add up. Content-Encoding compression helps, but minifying first still wins a little.
+- **A browser wants to cache it.** Smaller bytes means smaller cache entries and faster cold-start loads.
+- **A database column wants to store it.** If you store JSON blobs in a text column, minifying shrinks storage and improves full-table scan speed.
+- **A URL or data URI wants to carry it.** URL-encoded JSON in query strings or hash fragments needs to be as compact as possible.
+
+## Actual savings
+
+The wire savings from minifying are smaller than people think, because gzip and brotli are good at collapsing repeated whitespace anyway. Here are rough numbers on realistic payloads:
+
+| Payload | Pretty bytes | Minified bytes | Savings | After gzip (min) |
+|---|---|---|---|---|
+| User profile (small) | 480 | 320 | 33% | 180 |
+| Order detail (medium) | 2,400 | 1,680 | 30% | 680 |
+| 200-item product list | 52,000 | 38,000 | 27% | 7,400 |
+
+Two takeaways:
+
+1. Minifying always saves, usually 25-35% of the raw text size.
+2. Once you apply HTTP compression (gzip or brotli, which are essentially free on modern servers), the additional savings from minification narrow to 5-10%. Still real, still worth it at scale, but not dramatic.
+
+If you are serving small payloads to a small user base, pretty-printing on the wire is fine. Everyone sees the same payload in DevTools either way.
+
+## What about indentation width?
+
+The two usual choices are 2 spaces and 4 spaces. 2 is slightly smaller and matches the most widely adopted JavaScript style guides. 4 is easier to read at depth but about 20-40% larger than 2.
+
+Tabs are valid in JSON strings (as `\t` escapes), but JSON allows tabs in whitespace between tokens as well. If you use tabs for indentation, files look reasonable in editors that respect tab width but weird when pasted into systems that hard-code a tab width of 8.
+
+Our recommendation: **2 spaces** for almost everything. Use 4 only if your codebase standard demands it.
+
+## Edge cases
+
+### Sort-while-pretty
+
+Pretty-printing without sorting keys preserves insertion order. If you are comparing two payloads that should be identical, even small order differences blow up your diff. Before diffing, [sort keys](/guides/sorting-json-keys-pros-and-cons/) and pretty-print together.
+
+### Unicode escapes
+
+Many pretty-printers emit non-ASCII characters as `\uXXXX` escapes by default. The `ensure_ascii=False` option in Python's `json.dumps` (or passing a replacer in JavaScript) keeps UTF-8 characters intact, which is usually what you want for human reading. For wire format, either encoding is valid.
+
+### Numbers like 1.0 vs 1
+
+Pretty-printing does not change the numeric representation, but some languages' `JSON.stringify` equivalents do. Python prints `1.0` as `1.0`, JavaScript prints it as `1`. If your tests compare pretty-printed output byte-for-byte, be aware that round-tripping through a parser can alter number representations even though the value is identical.
+
+### Trailing newlines
+
+Some tools emit a trailing `\n` on pretty-printed output; others don't. For consistency with most Unix tools (diff, cat, git), end your pretty-printed files with a single trailing newline. Minified wire payloads have no trailing newline, since they are meant to be exactly the bytes transmitted.
+
+## A good default pipeline
+
+Teams that deal with a lot of JSON usually adopt a rule of thumb:
+
+1. **Store pretty-printed** — in git, on disk, in docs.
+2. **Transmit minified** — to save bandwidth.
+3. **Display pretty-printed** — in DevTools, log viewers, admin dashboards.
+4. **Test both** — validate that your parsers accept each and produce the same result.
+
+The conversion between the two is symmetric and fast. Any JSON parser in any language can do it in a line of code. There is no reason to pick a single representation and stick to it across contexts.
+
+## Doing it in your language of choice
+
+```javascript
+// JavaScript
+JSON.stringify(data, null, 2)   // pretty, 2-space
+JSON.stringify(data)             // minified
+```
+
+```python
+# Python
+json.dumps(data, indent=2, ensure_ascii=False)  # pretty
+json.dumps(data, separators=(',', ':'))         # minified (removes default spaces)
+```
+
+```go
+// Go
+json.MarshalIndent(data, "", "  ")  // pretty
+json.Marshal(data)                   // minified
+```
+
+```rust
+// Rust (serde_json)
+serde_json::to_string_pretty(&data)?  // pretty
+serde_json::to_string(&data)?         // minified
+```
+
+## Using the tool on this site
+
+Our [JSON tool](/json/) does both. Paste your JSON and:
+
+- **Beautify** → 2-space indent, 4-space, or tabs, your choice, plus an optional "sort keys" for diff-friendliness.
+- **Minify** → strips all whitespace. Paste the result anywhere that needs a compact one-liner.
+- **Validate** → no output change, just yes-this-parses with an error line if it doesn't.
+
+All of this runs inside your browser in a Web Worker. Nothing is uploaded. If you are dealing with a sensitive payload and typical beautifiers make you nervous, this page is the safe default.
+
+## Related reading
+
+- [When minifying API payloads actually matters](/guides/when-to-minify-api-payloads/) — the full cost-benefit math.
+- [Sort JSON keys — pros and cons](/guides/sorting-json-keys-pros-and-cons/) — why diff-ability is worth the loss of original order.
+- Glossary: [Pretty-print](/glossary/pretty-print/), [Minify](/glossary/minify/).

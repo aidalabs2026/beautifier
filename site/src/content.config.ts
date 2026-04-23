@@ -2,7 +2,10 @@ import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
 const guides = defineCollection({
-  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/guides' }),
+  loader: glob({
+    pattern: ['**/*.{md,mdx}', '!**/_*.{md,mdx}'],
+    base: './src/content/guides',
+  }),
   schema: z.object({
     title: z.string(),
     description: z.string(),
@@ -16,7 +19,10 @@ const guides = defineCollection({
 });
 
 const glossary = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/glossary' }),
+  loader: glob({
+    pattern: ['**/*.md', '!**/_*.md'],
+    base: './src/content/glossary',
+  }),
   schema: z.object({
     title: z.string(),
     description: z.string(),
@@ -26,7 +32,10 @@ const glossary = defineCollection({
 });
 
 const faq = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/faq' }),
+  loader: glob({
+    pattern: ['**/*.md', '!**/_*.md'],
+    base: './src/content/faq',
+  }),
   schema: z.object({
     question: z.string(),
     category: z.enum(['using-the-tool', 'privacy', 'limits', 'formats', 'ads']),

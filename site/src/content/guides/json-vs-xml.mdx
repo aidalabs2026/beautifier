@@ -1,0 +1,181 @@
+---
+title: "JSON vs XML: A Practical Comparison in 2026"
+description: "XML has not gone away. It has moved to specific niches where its document model fits. This guide covers when each format is the right answer today, not the one it was in 2005."
+category: "comparison"
+lastUpdated: 2026-04-23
+order: 10
+tags: ["json", "xml", "comparison"]
+---
+
+In 2005 this comparison would have been a crusade: JSON was emerging, XML was entrenched, and the argument was whether JSON could be taken seriously. Twenty years later the debate has cooled. JSON won the API layer. XML retreated to a handful of domains where its properties are a good fit. Both formats are here to stay, and both are the right answer somewhere.
+
+This guide covers what each format actually gives you today, the domains where each is dominant, and the decision framework teams use when picking between them for a new project.
+
+## The same data, side by side
+
+A small user profile in both formats.
+
+**JSON:**
+
+```json
+{
+  "id": 42,
+  "name": "Ada Lovelace",
+  "email": "ada@example.com",
+  "roles": ["admin", "editor"],
+  "active": true
+}
+```
+
+**XML:**
+
+```xml
+<user id="42" active="true">
+  <name>Ada Lovelace</name>
+  <email>ada@example.com</email>
+  <roles>
+    <role>admin</role>
+    <role>editor</role>
+  </roles>
+</user>
+```
+
+Same information, different philosophies. JSON thinks in nested maps and lists. XML thinks in elements that contain text, attributes, and other elements. Both work. The difference shows up at the edges.
+
+## What XML has that JSON doesn't
+
+### Attributes vs. elements
+
+XML has two ways to attach data to a node: child elements (`<name>Ada</name>`) and attributes (`<user id="42">`). Is `id` an attribute or a sub-element? Both are valid, and the choice affects both semantics and usability. This is a genuine expressive advantage when modelling documents like XML-based office files (DOCX, XLSX) where the distinction between "this is about the paragraph" (attribute) and "this is inside the paragraph" (child element) matters.
+
+JSON has one way: every piece of data is a value under a key. Simpler, less expressive.
+
+### Mixed content
+
+XML handles mixed content naturally:
+
+```xml
+<p>The <em>fast</em> fox jumped over the <strong>lazy</strong> dog.</p>
+```
+
+Rendering the text of that paragraph requires walking `<p>`, interleaving literal text with inline formatting nodes. This is how HTML works. JSON can encode the same data structurally, but there is no idiomatic way — any encoding feels clunky.
+
+For any document-like content — books, articles, transcripts, medical records — XML is a much more natural fit.
+
+### Namespaces
+
+XML has a first-class mechanism for mixing vocabularies from different specifications in one document:
+
+```xml
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <dc:creator>Ada</dc:creator>
+</feed>
+```
+
+`<dc:creator>` comes from the Dublin Core vocabulary; other elements come from Atom. This lets large, stable specs co-exist without stepping on each other. JSON has nothing equivalent. JSON-LD ([glossary](/glossary/json-ld/)) added namespace-like mechanisms on top, but it is an ecosystem, not a language feature.
+
+### Validation with XML Schema (XSD) and DTD
+
+XML has an unusually mature validation story. XSD lets you describe complex type hierarchies, required sequences, optional repeated elements, and more. JSON Schema exists and is excellent, but it is strictly less expressive than XSD for document-oriented data (think "this section must contain exactly one title and at least one paragraph").
+
+### XSLT and XPath
+
+XML has a mature query language (XPath) and a full transformation language (XSLT). Nothing in the JSON world matches XSLT's power — JSONPath and JMESPath are close to XPath for queries, but there is no mainstream transformation language for JSON that is comparable to XSLT. For document-processing pipelines, this is a genuine win for XML.
+
+## What JSON has that XML doesn't
+
+### A sensible syntax for arrays
+
+XML has no native concept of an array. You conventionally use repeated sibling elements, but there is no way to tell from the schema whether "one `<role>` element" means "a single-item list" or "not a list at all". JSON's `[ ]` is unambiguous.
+
+### Less ceremony
+
+Closing tags are verbose. `<name>Ada</name>` has the word "name" twice. `{ "name": "Ada" }` has it once. Over a large payload, this adds up — XML is typically 20-40% larger than JSON for the same data.
+
+### Browser-native parsing
+
+Every browser ships `JSON.parse`. Browsers have `DOMParser` for XML, but the API is clunkier. If you are shipping data to a browser, JSON is lower friction.
+
+### Smaller mental model
+
+JSON has six data types and three structural rules. XML has elements, attributes, text nodes, CDATA sections, processing instructions, comments, DOCTYPEs, namespaces, entities, and notations. For simple data, JSON's smaller surface area is a feature.
+
+### Faster by default
+
+JSON parsers are faster, partly because JSON is smaller, and partly because XML parsers have to handle a much larger set of features. For RPC-style calls where latency matters, JSON wins.
+
+## Where XML still dominates
+
+Not everywhere the press treats as dead.
+
+- **Office document formats.** DOCX, XLSX, PPTX, ODF — all XML inside a ZIP. Their document model genuinely benefits from mixed content and namespaces.
+- **Enterprise integration.** SOAP, WSDL, and adjacent specs are still extremely common in healthcare (HL7), banking, government, and ERP integrations. Many internal APIs behind the scenes of large organisations are still XML.
+- **Publishing and archival.** DocBook, TEI, JATS (for journal articles) are XML. For long-lived, structured, mixed-content documents with strict validation needs, XML is the default.
+- **Configuration in legacy Java / .NET ecosystems.** Maven `pom.xml`, Spring context files, Microsoft `.csproj` — XML is entrenched.
+- **RSS and Atom feeds.** Still widely used for syndication.
+- **SVG.** Every icon on this site is SVG, which is XML.
+
+## Where JSON dominates
+
+- **Web APIs.** REST, GraphQL, modern RPC all speak JSON by default.
+- **Configuration in modern tooling.** npm `package.json`, tsconfig, every CI and serverless platform config that started post-2010.
+- **Database document types.** PostgreSQL `jsonb`, MongoDB, DynamoDB.
+- **Event streams and logs.** Structured logging, message queues, analytics payloads.
+- **Client-side state.** Redux snapshots, localStorage blobs, service-worker caches.
+
+## Picking for a new project
+
+The decision almost always comes down to the nature of your data:
+
+**Your data looks like a set of structured records** (users, orders, events, products)? JSON.
+
+**Your data looks like a document with mixed content and structural markup** (articles, books, forms, medical records, invoices with nested line items and notes)? XML.
+
+**Your data lives on the web, and primary consumers are JavaScript clients**? JSON.
+
+**Your data lives in a heavily regulated vertical and the standard format is already XML**? XML. Do not fight the ecosystem. Most of the real value is in the schemas and tools that already exist.
+
+**You are doing namespace-heavy mixing** of third-party vocabularies? XML still has the edge here, though JSON-LD gets close in some cases.
+
+**You are moving bytes and you care about size / speed**? JSON.
+
+## Converting between them
+
+Going from JSON to XML is easier than the other way around, because JSON has fewer concepts. A JSON object maps to an XML element with child elements named after keys. Arrays map to repeated siblings.
+
+The reverse conversion is lossy:
+
+- Attributes vs. elements — must pick a convention ("@attr" prefix, or merge into the element).
+- Mixed content — JSON has no natural representation.
+- Namespace prefixes — disappear or get munged into keys.
+- Comments and processing instructions — discarded.
+
+If you are told "we need this JSON as XML" or vice versa, do not accept it blindly. Ask what the consumer actually needs. Often the answer is that a small subset of the original document is enough.
+
+## Performance numbers (rough)
+
+Parse-speed comparisons change with each library release, but the shape is stable:
+
+| Operation | JSON (modern parser) | XML (modern parser) | Ratio |
+|---|---|---|---|
+| Parse 1&nbsp;MB document | ~5 ms | ~15 ms | 3x faster |
+| Serialise 10k objects | ~12 ms | ~40 ms | 3x faster |
+| Memory for parsed document | baseline | ~1.5x | 50% more |
+| Compressed wire size (gzip) | baseline | ~1.2x | 20% more |
+
+None of these are showstoppers for XML at moderate scale. At high throughput, they add up.
+
+## Summary
+
+- XML is not dead; it is specialised.
+- JSON is not universal; it is dominant in the specific domain that grew fastest (web APIs).
+- Pick based on the data's shape, not on fashion.
+- If you are starting a greenfield API on the web in 2026, use JSON unless a specific requirement pushes you to XML.
+- If you are working inside an industry where XML is the standard, use XML. The tooling is mature and the schemas are worth their weight.
+
+## Related reading
+
+- [What is JSON?](/guides/what-is-json/) — the baseline for one side of this comparison.
+- [JSON vs YAML](/guides/json-vs-yaml/) — the other popular "JSON competitor".
+- Glossary: [XML](/glossary/xml/), [XSD](/glossary/xsd/), [DTD](/glossary/dtd/), [XPath](/glossary/xpath/).

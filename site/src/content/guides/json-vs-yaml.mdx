@@ -1,0 +1,165 @@
+---
+title: "JSON vs YAML: When to Use Which Format"
+description: "JSON and YAML solve overlapping problems but optimise for different users. This guide compares their syntax, strengths, and failure modes so you can pick the right one without regret."
+category: "comparison"
+lastUpdated: 2026-04-23
+order: 3
+tags: ["json", "yaml", "comparison"]
+---
+
+Pick any CI configuration, Kubernetes manifest, or modern framework config and you will find YAML. Pick any REST API, RPC payload, or browser-server message and you will find JSON. Both formats describe the same kind of data — nested records with strings, numbers, lists, and maps — so why do we use two of them? And how do you choose?
+
+The short answer is that they were designed for different audiences. JSON was designed for machines to exchange with other machines. YAML was designed for humans to write and read. Everything else follows from that.
+
+## The same data, side by side
+
+Here is the same document in both formats. A small application config with a service, a list of dependencies, and some feature flags.
+
+**JSON:**
+
+```json
+{
+  "service": "checkout",
+  "port": 8080,
+  "log_level": "info",
+  "dependencies": ["postgres", "redis"],
+  "features": {
+    "dark_mode": true,
+    "experimental_cart": false
+  }
+}
+```
+
+**YAML:**
+
+```yaml
+service: checkout
+port: 8080
+log_level: info
+dependencies:
+  - postgres
+  - redis
+features:
+  dark_mode: true
+  experimental_cart: false
+```
+
+They describe identical data. The YAML is noticeably less cluttered. For a human editing this file by hand, that matters. For a program writing or reading it, it does not.
+
+## Syntax differences that actually matter
+
+**Structure markers.** JSON uses `{ }` for objects and `[ ]` for arrays. YAML uses indentation and leading dashes. YAML's indentation is meaningful; two spaces vs. four spaces is not a cosmetic choice, it can change the parse tree.
+
+**Quoting.** JSON requires double quotes on every key and every string value. YAML lets you leave quotes off most strings. `log_level: info` and `log_level: "info"` are equivalent. This is friendlier to type but introduces traps — some unquoted values look like strings but parse as something else (see "the Norway problem" below).
+
+**Comments.** YAML supports `#` line comments. JSON does not support comments at all. If you want comments in a JSON file, you either switch to [JSONC](/glossary/jsonc/) or embed them in dummy keys like `"_comment": "..."`.
+
+**Multi-line strings.** YAML has a mini-language for multi-line strings with literal newlines (`|`) or folded newlines (`>`). JSON requires escape sequences (`\n`) or concatenation.
+
+**References.** YAML has anchors (`&`) and aliases (`*`) that let one part of a document reference another. JSON has no references at all — if you want to reuse a value, you duplicate it or preprocess.
+
+## The cases where YAML is obviously better
+
+- **Hand-edited configuration.** Humans write less and read more in YAML. Indentation-based structure removes two characters per nested level, and comments explain the "why" next to the "what".
+- **Long multi-line strings.** A shell script embedded in a GitHub Actions workflow looks like an actual shell script. The same thing in JSON would be one long line with `\n` escapes.
+- **Files that mix data and documentation.** Kubernetes manifests, GitHub Actions workflows, Docker Compose files — anywhere a team is going to maintain the file by hand, the `#` comments earn their keep.
+
+## The cases where JSON is obviously better
+
+- **Wire format between services.** JSON parsers are everywhere, are fast, are strict, and are predictable. You do not need to debate whether whitespace is significant at 3 AM.
+- **Browser-to-server payloads.** `JSON.parse` and `JSON.stringify` are built into every JavaScript runtime. You do not ship a YAML parser to the browser.
+- **Log records.** Line-by-line log formats like [JSON Lines](/guides/jsonl-and-ndjson-explained/) are streaming-friendly. YAML is not a streamable format in the same way.
+- **Database columns.** PostgreSQL's `jsonb`, MySQL's `JSON`, SQLite's `json1` — they all speak JSON natively. YAML storage means converting to JSON first.
+
+## YAML's sharp edges
+
+YAML is a friendlier syntax, and friendliness comes at a price. There are several well-known gotchas that have burned people in production.
+
+### The Norway problem
+
+YAML 1.1 parses unquoted `no` as the boolean `false`. Same for `yes`, `y`, `n`, `on`, `off`. If you have a list of country codes:
+
+```yaml
+countries:
+  - US
+  - DE
+  - NO
+```
+
+In a YAML 1.1 parser, `NO` becomes `false`. YAML 1.2 fixed this, but many ecosystems (notably Ruby and some older PyYAML versions) still default to 1.1 semantics. The fix is to quote suspicious strings: `- "NO"`.
+
+### Leading zeros
+
+```yaml
+zip_code: 07013
+```
+
+Is that the string "07013" or the octal number 07013 (which is decimal 3,595)? Depending on the parser and the YAML version, it could be either. JSON rejects leading zeros entirely, which avoids the ambiguity.
+
+### Versions that look like numbers
+
+```yaml
+version: 1.10
+```
+
+`1.10` is a perfectly valid YAML number, and it parses to the float `1.1` — the trailing zero is dropped. Your version string is now `1.1`, not `1.10`. The fix is to quote it.
+
+### Indentation mistakes are silent
+
+```yaml
+items:
+  - name: widget
+    price: 1
+   quantity: 2
+```
+
+That `quantity` is indented by three spaces instead of four. YAML does not necessarily error; depending on your parser, it may absorb `quantity` into the previous item, create a new item, or choke halfway through. JSON's explicit brackets make the same kind of mistake loud.
+
+## JSON's sharp edges
+
+JSON is strict, which protects you from the YAML-style surprises above, but it introduces its own issues.
+
+- **No comments.** For config files, this is a real cost.
+- **Quote fatigue.** Every key, every string value, every `true`/`false` surrounded by commas and punctuation.
+- **Manual escaping.** Embedded newlines, quotes, and backslashes all need escape sequences. Doable, ugly.
+- **Integer precision.** JSON numbers are one type. Parsers that treat them as IEEE-754 doubles (most JavaScript ones) lose accuracy above 2^53.
+
+## A decision rule that holds up
+
+Ask one question: **who is going to edit this file?**
+
+- If the answer is "a program," use JSON. It is easier to generate, easier to validate, and more consistent across parsers.
+- If the answer is "a person," use YAML. Its flexibility buys them time and readability.
+- If the answer is "both," pick the more important case. Kubernetes manifests are edited by people far more often than by machines, so they are YAML. REST API responses are edited by people almost never, so they are JSON.
+
+The wrong move is to use YAML for a wire format because "it is nicer" and then watch debugging sessions balloon because someone's country code became `false`. The other wrong move is to use JSON for a build config that needs comments and then watch the team maintain a parallel `README.md` that explains what each key does.
+
+## Converting between them
+
+Because JSON is a strict subset of YAML 1.2, every valid JSON document is also a valid YAML document. This is useful:
+
+- You can paste JSON into a YAML field and it will parse.
+- You can start with YAML for editing and convert to JSON before shipping to production.
+- Most tools that accept one accept the other via a flag.
+
+The reverse is not true: many YAML documents cannot be represented as JSON without losing comments, anchors, and multi-document separators.
+
+## Summary
+
+| Dimension | JSON | YAML |
+|---|---|---|
+| Primary audience | Machines | People |
+| Comments | No | Yes (`#`) |
+| Quoting | Required on everything | Optional on most strings |
+| Multi-line strings | Escaped `\n` | `|` or `>` blocks |
+| Anchors / references | No | Yes (`&` / `*`) |
+| Indentation | Cosmetic | Load-bearing |
+| Gotcha list | Short and boring | Long and surprising |
+| Where you find it | APIs, logs, DB columns | Configs, pipelines, manifests |
+
+When in doubt, the safer default for new data is JSON, and the safer default for new config is YAML. And when you are debugging a YAML file that refuses to parse correctly, converting it to JSON in your head (or with a tool) is usually the fastest way to see the bug.
+
+## Related reading
+
+- [What is JSON?](/guides/what-is-json/) — the spec this guide compares against.
+- [The 10 most common JSON syntax errors](/guides/common-json-syntax-errors/) — the flip side: when JSON's strictness bites back.

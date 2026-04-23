@@ -1,0 +1,179 @@
+---
+title: "The 10 Most Common JSON Syntax Errors (and How to Fix Them)"
+description: "Most JSON parse errors come from a handful of mistakes. This reference covers the ten offenders we see most, what their error messages look like, and how to fix each one quickly."
+category: "troubleshooting"
+lastUpdated: 2026-04-23
+order: 2
+tags: ["json", "debugging", "troubleshooting"]
+---
+
+If you are reading this, you probably pasted a JSON payload into a tool or an API and got something unhelpful like `Unexpected token ] in JSON at position 147`. The good news is that almost every real-world JSON parse failure falls into one of ten buckets. Once you know them, the error messages become diagnostic hints instead of mysteries.
+
+This guide is arranged roughly by frequency, starting with the mistakes we see most often. At the end there is a short section on how different parsers word the same underlying problem, which is useful if your error message doesn't match what I describe.
+
+## 1. Trailing commas
+
+```json
+{
+  "name": "Ada",
+  "role": "engineer",
+}
+```
+
+That last comma after `"engineer"` is fine in JavaScript, Python, Rust, and most modern languages. JSON does not allow it. The parser reads the comma, expects another key, and finds a `}` instead.
+
+**Typical error:** `Unexpected token } in JSON` or `Expecting property name enclosed in double quotes`.
+
+**Fix:** remove the comma. Most linters will flag this on save. If you are pasting from a JavaScript source file, this is almost always the first thing to check.
+
+## 2. Single quotes instead of double quotes
+
+```json
+{ 'name': 'Ada' }
+```
+
+JSON mandates double quotes around both keys and string values. Single quotes are never valid, no matter how familiar they look.
+
+**Typical error:** `Unexpected token ' in JSON at position 2`.
+
+**Fix:** replace every `'` with `"`. A quick find-and-replace does the job, unless some of your strings contain literal apostrophes — in which case you need to escape those with `\'` first… wait, no, you escape them as `’` or just leave the apostrophe inside the double-quoted string.
+
+## 3. Unquoted keys
+
+```json
+{ name: "Ada" }
+```
+
+JavaScript object literals allow unquoted keys when the key is a valid identifier. JSON does not. Every key must be a double-quoted string.
+
+**Typical error:** `Expecting property name enclosed in double quotes`.
+
+**Fix:** wrap the key in double quotes. If you copied from a JavaScript source, consider using `JSON.stringify()` at the source instead of pasting a literal.
+
+## 4. Comments
+
+```json
+{
+  "port": 8080,
+  // we picked 8080 because 8000 was taken
+  "host": "localhost"
+}
+```
+
+Strict JSON has no comments of any kind. Neither `//` nor `/* */` will work. This burns a lot of people who use VS Code settings files, which happen to be JSONC (JSON with comments) rather than plain JSON.
+
+**Typical error:** `Unexpected token / in JSON`.
+
+**Fix:** remove the comments. If you actually need comments in a config file, switch to [JSONC](/glossary/jsonc/), JSON5, YAML, or TOML. Alternatively, use a key named `_comment` to hold your note — it will be ignored by most consumers but still survives strict parsing.
+
+## 5. Missing commas between items
+
+```json
+{
+  "name": "Ada"
+  "role": "engineer"
+}
+```
+
+After the first value-string, the parser expects either `,` (another pair coming) or `}` (end of object). It finds `"role"` instead and gives up.
+
+**Typical error:** `Unexpected string in JSON at position ...`.
+
+**Fix:** add the comma after `"Ada"`. Good editors display JSON with one key-value pair per line, which makes missing commas visually obvious — they are the only line that does not end in `,`.
+
+## 6. Unescaped special characters in strings
+
+```json
+{ "path": "C:\Users\ada" }
+```
+
+Backslashes in JSON strings always start an escape sequence. `\U` is not a recognised escape, so the parser rejects it.
+
+**Typical error:** `Bad control character in string literal` or `Unexpected token U`.
+
+**Fix:** double every backslash. The above becomes `"C:\\Users\\ada"`. Control characters like raw tabs and newlines also need escaping — `\t`, `\n`, `\r`, `\"`, `\\`, `\/` (optional), `\b`, `\f`, or `\uXXXX` for anything else.
+
+## 7. Smart quotes replacing straight quotes
+
+```
+{ “name”: “Ada” }
+```
+
+Word processors and some chat apps automatically replace straight `"` with curly `“ ”`. Your eyes read them as quotes. A JSON parser sees arbitrary Unicode characters where a `"` should be.
+
+**Typical error:** `Unexpected token “ in JSON at position 2`.
+
+**Fix:** open the file in a proper code editor and replace smart quotes with straight quotes. If you get JSON via email or a Google Doc, this is almost always the problem.
+
+## 8. Mismatched or missing brackets
+
+```json
+{
+  "users": [
+    { "name": "Ada" },
+    { "name": "Linus" }
+  ,
+  "total": 2
+}
+```
+
+The `]` closing the array is missing. Either you forgot it or you put a `,` where the `]` should be. Deep nesting makes this easy to do and hard to spot.
+
+**Typical error:** `Expected comma or closing bracket` or `Unexpected end of JSON`.
+
+**Fix:** paste the document into a beautifier. Proper indentation makes mismatched brackets visually obvious — the `]` lines will not line up with their `[` lines, or one will be missing entirely.
+
+## 9. Invalid numbers
+
+```json
+{
+  "price": .99,
+  "qty": 0123,
+  "ratio": 1.
+}
+```
+
+All three of those numbers violate the spec. JSON requires at least one digit before a decimal point, disallows leading zeroes (except for the number zero itself), and requires at least one digit after a decimal point if one is present. Other invalid cases include `NaN`, `Infinity`, `+5`, and hex literals like `0xFF`.
+
+**Typical error:** `Unexpected token . in JSON` or `Invalid number`.
+
+**Fix:** write `0.99`, `123`, and `1.0`. If you truly need `NaN` or infinity, send them as strings (`"NaN"`) and parse them on the receiving side.
+
+## 10. Encoding problems (BOM, wrong encoding)
+
+The file looks fine in your editor. It fails to parse anyway. The most likely cause is a byte-order mark (BOM) at the beginning of the file, or the file is encoded as UTF-16 instead of UTF-8.
+
+**Typical error:** `Unexpected token  in JSON at position 0` (that is an invisible character, not a blank).
+
+**Fix:** re-save the file as UTF-8 without BOM. In VS Code, the encoding shows in the bottom-right status bar — click it and choose "Save with Encoding → UTF-8". On Windows, some shells add a BOM when you redirect output with `>`; use `out-file -Encoding utf8NoBOM` in PowerShell or pipe through `tr` in bash to strip it.
+
+## Cross-parser error wording
+
+The same mistake produces different error messages in different tools.
+
+| Problem | V8 (Node, Chrome) | Python | Rust (serde_json) | Our validator |
+|---|---|---|---|---|
+| Trailing comma | `Unexpected token } in JSON at position N` | `Expecting property name enclosed in double quotes: line X column Y` | `trailing comma at line X column Y` | Line X, column Y |
+| Missing comma | `Unexpected string in JSON at position N` | `Expecting ',' delimiter: line X column Y` | `expected ','` | Line X, column Y |
+| Bad escape | `Bad escaped character` | `Invalid \escape: line X column Y` | `invalid escape` | Line X, column Y |
+| Unterminated string | `Unexpected end of JSON` | `Unterminated string starting at: line X column Y` | `EOF while parsing a string` | Line X, column Y |
+
+The through-line: every mature parser will give you a position, either as a character offset or as a line and column. When in doubt, paste the document into our [JSON beautifier](/json/) and run **Validate**; the error message and the line number will point you at the break.
+
+## A general debugging routine
+
+When you have a JSON parse error and you are not sure where to start:
+
+1. **Run the whole document through a beautifier.** This reveals structural mistakes at a glance — mismatched brackets do not line up.
+2. **Read the error position.** Parsers know where they got confused, and their column number is usually within three characters of the actual bug.
+3. **Look to the left.** The real mistake is almost always a few characters before the reported position. A missing comma on line 5 gets reported at the start of line 6.
+4. **Bisect large documents.** If the file is 5,000 lines, cut it roughly in half and parse each half separately. Narrow down the failing half, then repeat.
+5. **Compare against a known-good example.** Small, weird rules like "no trailing commas" are easier to spot when you have a clean document next to yours.
+
+## Related reading
+
+- [What is JSON?](/guides/what-is-json/) — the baseline spec this guide assumes.
+- [Escaping strings in JSON](/guides/json-escape-characters/) — for more on errors #6 and #10.
+- [Pretty-print vs. minify](/guides/pretty-print-vs-minify/) — the first step of the debugging routine above.
+
+And if you would rather not chase errors by hand, the [JSON validator here on this site](/json/) will tell you the line and column of the first problem it hits.

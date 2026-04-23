@@ -9,8 +9,10 @@ export const CONTACT_EMAIL = 'facered79@gmail.com';
 export const NAV_ITEMS: Array<{ href: string; label: string }> = [
   { href: '/', label: 'Home' },
   { href: '/json/', label: 'JSON' },
+  { href: '/guides/', label: 'Guides' },
+  { href: '/glossary/', label: 'Glossary' },
+  { href: '/faq/', label: 'FAQ' },
   { href: '/about/', label: 'About' },
-  { href: '/contact/', label: 'Contact' },
 ];
 
 export const FOOTER_LINKS: Array<{ href: string; label: string }> = [

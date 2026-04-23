@@ -1,0 +1,124 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { SITE_URL } from '~/consts';
+
+const entries = (await getCollection('faq'))
+  .sort((a, b) => {
+    const orderDelta = (a.data.order ?? 999) - (b.data.order ?? 999);
+    if (orderDelta !== 0) return orderDelta;
+    return a.data.question.localeCompare(b.data.question);
+  });
+
+const renderedEntries = await Promise.all(
+  entries.map(async (entry) => {
+    const { Content } = await render(entry);
+    const plain = entry.body ?? '';
+    return { entry, Content, plain };
+  }),
+);
+
+const categoryLabels: Record<string, string> = {
+  'using-the-tool': 'Using the tool',
+  privacy: 'Privacy',
+  limits: 'Limits',
+  formats: 'Formats',
+  ads: 'Ads & funding',
+};
+
+const byCategory = renderedEntries.reduce<Record<string, typeof renderedEntries>>((acc, e) => {
+  (acc[e.entry.data.category] ||= []).push(e);
+  return acc;
+}, {});
+
+const categoryOrder = ['using-the-tool', 'privacy', 'limits', 'formats', 'ads'];
+
+// FAQPage JSON-LD
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: entries.map((e) => ({
+    '@type': 'Question',
+    name: e.data.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: (e.body ?? '').replace(/\n+/g, ' ').trim().slice(0, 500),
+    },
+  })),
+};
+---
+
+<BaseLayout
+  title="FAQ"
+  description="Frequently asked questions about using Beautifier: privacy, file size limits, supported formats, ads, and more."
+  canonical="/faq/"
+>
+  <div class="prose">
+    <h1>FAQ</h1>
+    <p>
+      Short answers to the questions we see most often. Still stuck?
+      <a href="/contact/">Get in touch</a>.
+    </p>
+
+    {categoryOrder.filter((c) => byCategory[c]).map((cat) => (
+      <section class="faq-section">
+        <h2>{categoryLabels[cat]}</h2>
+        {byCategory[cat].map(({ entry, Content }) => (
+          <details class="faq-item">
+            <summary>{entry.data.question}</summary>
+            <div class="faq-answer">
+              <Content />
+            </div>
+          </details>
+        ))}
+      </section>
+    ))}
+  </div>
+
+  <script
+    type="application/ld+json"
+    set:html={JSON.stringify(jsonLd)}
+  />
+
+  <style>
+    .faq-section { margin-top: 2rem; }
+    .faq-item {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 0.9rem 1.1rem;
+      margin: 0.5rem 0;
+    }
+    .faq-item summary {
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none;
+      padding-right: 1.5rem;
+      position: relative;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after {
+      content: '+';
+      position: absolute;
+      right: 0;
+      top: -0.1rem;
+      font-size: 1.3rem;
+      color: var(--color-accent);
+      line-height: 1;
+    }
+    .faq-item[open] summary::after { content: '−'; }
+    .faq-answer {
+      margin-top: 0.75rem;
+      color: var(--color-text);
+      line-height: 1.65;
+    }
+    .faq-answer p:last-child { margin-bottom: 0; }
+    .faq-answer code {
+      font-family: var(--font-mono);
+      background: var(--color-code-bg);
+      padding: 0.1em 0.35em;
+      border-radius: var(--radius-sm);
+      font-size: 0.92em;
+    }
+  </style>
+</BaseLayout>

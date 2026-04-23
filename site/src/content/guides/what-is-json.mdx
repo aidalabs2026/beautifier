@@ -1,0 +1,166 @@
+---
+title: "What Is JSON? A Plain-English Guide to JavaScript Object Notation"
+description: "JSON is the lingua franca of web APIs. This guide walks through its syntax, its data types, the trade-offs that shaped it, and the small gotchas that trip up newcomers."
+category: "basics"
+lastUpdated: 2026-04-23
+order: 1
+tags: ["json", "beginner"]
+---
+
+If you have spent any time wiring up a modern web application, you have touched JSON. It is the format you see when you open the Network tab in your browser and click a request. It is what most REST APIs return. It is how your server talks to your database driver, how your build tool reads its config, how your smart thermostat tells its cloud service that it is 21 degrees in the hallway. For a format that started as a sidebar in a 2001 spec, JSON has become astonishingly load-bearing.
+
+This guide is meant for someone who has been using JSON without really thinking about it, and now has a reason to think about it. Maybe you are chasing a bug that says "Unexpected token" and you would like to know what the tokens are. Maybe you are about to design an API and want to be less embarrassed by the shape of it. Either way, twenty minutes here will save you some hours later.
+
+## The one-paragraph definition
+
+JSON — short for **JavaScript Object Notation** — is a lightweight, text-based data format designed to represent structured data as plain strings. It borrows the object literal syntax from JavaScript (hence the name), but it is language-neutral: you will find a JSON parser shipped with the standard library of essentially every modern programming language. It is standardised in [RFC&nbsp;8259](https://datatracker.ietf.org/doc/html/rfc8259) and [ECMA-404](https://www.ecma-international.org/publications-and-standards/standards/ecma-404/).
+
+## A tiny example
+
+Here is a complete JSON document:
+
+```json
+{
+  "id": 42,
+  "name": "Ada Lovelace",
+  "email": "ada@example.com",
+  "roles": ["admin", "editor"],
+  "verified": true,
+  "projects": null
+}
+```
+
+That is it. Six keys, six values, four different data types. Any JSON parser on any platform will decode this into whatever data structure is idiomatic for its language — a `dict` in Python, an `Object` in JavaScript, a `Map<String, Any>` in Kotlin, a `struct` in Go, and so on.
+
+## The six data types
+
+JSON gives you six kinds of values. That is a deliberately small set. Part of the format's appeal is that it stops there.
+
+1. **Object** — an unordered collection of key/value pairs wrapped in `{ }`. Keys must be strings, values can be any JSON type including other objects.
+2. **Array** — an ordered list of values wrapped in `[ ]`. Unlike some languages, JSON arrays can hold values of mixed types.
+3. **String** — a sequence of Unicode characters wrapped in double quotes.
+4. **Number** — an integer or floating-point number. There is no separate `int` vs `float`; both are just "number".
+5. **Boolean** — `true` or `false`, always lowercase.
+6. **Null** — the literal `null`, lowercase.
+
+There is no date type, no binary blob type, no map with non-string keys, no concept of classes or schemas. The minimalism is a feature. If you need a date, you agree to encode it as an ISO&nbsp;8601 string. If you need binary, you agree to base64-encode it as a string. The format does not guess for you.
+
+## What JSON is missing (on purpose)
+
+JSON is often compared unfavourably to richer formats like YAML, TOML, or Protocol Buffers. Most of those comparisons boil down to things JSON deliberately does not have:
+
+- **No comments.** If you have ever tried to document your `package.json` and found that `//` breaks your build, you have met this restriction. There are supersets like [JSON5](https://json5.org/) and [JSONC](https://code.visualstudio.com/docs/languages/json#_json-with-comments) that add comments, but strict JSON parsers reject them.
+- **No trailing commas.** `{"a": 1, "b": 2,}` is invalid. The closing `,` is a frequent copy-from-JavaScript mistake.
+- **No multi-line strings.** If you need a newline inside a string, you escape it as `\n`.
+- **No references or anchors.** Unlike YAML, JSON cannot reference another part of the same document.
+- **No numeric precision guarantees.** The spec says numbers are arbitrary-precision in theory, but in practice most parsers use double-precision floats, which means integers above 2^53 silently lose accuracy.
+
+Each of these is a trade-off. The format gets simpler, faster to parse, and harder to inject malicious payloads into at the cost of some ergonomics.
+
+## Why did this catch on?
+
+JSON was introduced around 2001 as a way to send structured data to a browser without going through an XML parser. At the time, XML was the default wire format for almost every web API. Compared to XML, JSON had three things going for it that turned out to matter a lot:
+
+- **It was shorter.** The same payload takes roughly half the bytes in JSON.
+- **It was natively parseable in the browser.** A JavaScript engine could just `eval()` it (this was later considered unsafe and replaced by dedicated parsers).
+- **It mapped cleanly onto the data structures that application developers actually used** — nested maps and lists. XML's mental model is closer to a document, which is great for documents and awkward for a user profile.
+
+By the time REST APIs took over from SOAP in the late 2000s, JSON was the default. Today it is everywhere, even in contexts where it is not a great fit.
+
+## The parts of a JSON document
+
+Let us walk through one more example, slightly more realistic:
+
+```json
+{
+  "id": "order_91f4",
+  "customer": {
+    "id": 42,
+    "name": "Ada Lovelace"
+  },
+  "items": [
+    { "sku": "PEN-001", "qty": 2, "price": 1.25 },
+    { "sku": "INK-BLK", "qty": 1, "price": 3.50 }
+  ],
+  "total": 6.00,
+  "paid": true,
+  "notes": null
+}
+```
+
+Several patterns here are almost universal:
+
+- **Top-level object.** Most real-world JSON APIs return a single top-level object, not an array. If a response grows, you can add new keys without breaking older clients. If your top level were an array, you would have nowhere to put metadata like pagination.
+- **Nested objects for composition.** `"customer"` is a full object, not a string. This is how you model one-to-one relationships inside a single document.
+- **Arrays of objects for lists.** `"items"` is a list of line items. Each item has its own structure.
+- **`null` is an explicit "nothing".** In the example, `"notes": null` says "there is no note" clearly. An alternative would be to omit the key entirely, which some APIs prefer. Both are valid; pick one and stay consistent.
+
+## Parsing JSON in a few languages
+
+The code is boring, which is the point.
+
+```javascript
+// JavaScript
+const data = JSON.parse(text);
+const text = JSON.stringify(data, null, 2);
+```
+
+```python
+# Python
+import json
+data = json.loads(text)
+text = json.dumps(data, indent=2)
+```
+
+```go
+// Go (with a struct that matches the shape)
+var data Order
+json.Unmarshal([]byte(text), &data)
+b, _ := json.MarshalIndent(data, "", "  ")
+```
+
+```rust
+// Rust with serde_json
+let data: Order = serde_json::from_str(text)?;
+let text = serde_json::to_string_pretty(&data)?;
+```
+
+In every case the parser returns a native data structure. If the input is malformed, it throws. Production code should always treat parse errors as expected.
+
+## Common gotchas
+
+**Trailing commas.** Most text editors will happily leave one for you when you delete a line. Production JSON must not have them. When copying JSON from a JavaScript snippet, double-check the last item.
+
+**Single quotes.** `'hello'` is a valid JavaScript string, not a valid JSON string. Keys and values in JSON always use double quotes.
+
+**Unquoted keys.** JavaScript lets you write `{ name: "Ada" }`. JSON requires `{ "name": "Ada" }`. Forgetting the quotes is the fastest way to produce valid JavaScript that is not valid JSON.
+
+**Comments.** Strip `// …` and `/* … */` before parsing, or switch to a tolerant parser that understands JSONC. Strict parsers will always reject them.
+
+**Large integers.** If you are sending 64-bit identifiers like Twitter tweet IDs, do not send them as JSON numbers. JavaScript clients will silently truncate. Send them as strings.
+
+**Encoding.** JSON is always UTF-8 in practice. If you produce a file in Windows-1252 or UTF-16, most parsers will refuse or mojibake the output.
+
+## When JSON is a good fit
+
+- Web APIs, especially ones consumed by JavaScript clients.
+- Configuration files for tooling that will read them at build or startup time, if comments are not needed.
+- Storing small, structured records in databases that have native JSON types (PostgreSQL's `jsonb`, MySQL's `JSON`, SQLite's `json1`).
+- Event payloads sent over message queues.
+
+## When JSON is a poor fit
+
+- Hand-edited config files where comments really matter. Reach for TOML or YAML instead, or at minimum JSONC.
+- High-throughput binary protocols where every byte matters. Reach for Protocol Buffers, MessagePack, or CBOR.
+- Documents with rich markup. Reach for XML or HTML.
+- Streaming data where you want to emit one record at a time without wrapping the whole stream in a big array. Look at [JSON Lines](/guides/jsonl-and-ndjson-explained/) instead.
+
+## Where to go next
+
+You now know what JSON is, what its data types are, and why it looks the way it does. The natural next steps:
+
+- Read about the [most common JSON syntax errors](/guides/common-json-syntax-errors/) so you can fix them at a glance.
+- Understand when to [pretty-print vs. minify](/guides/pretty-print-vs-minify/) your JSON.
+- Browse the [glossary entry for JSON](/glossary/json/) for the precise wording of the spec.
+
+And when you have a payload in front of you that looks wrong, try our [JSON beautifier](/json/). It will tell you the exact line and column of the first problem, which is usually all you need.

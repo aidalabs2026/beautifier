@@ -1,0 +1,222 @@
+---
+title: "JSON Schema Basics: Validating Data with Confidence"
+description: "JSON Schema is how you describe, document, and enforce the shape of a JSON document. This primer walks through the core keywords and the workflow that makes them pay off."
+category: "basics"
+lastUpdated: 2026-04-23
+order: 4
+tags: ["json", "schema", "validation"]
+---
+
+JSON's biggest strength — it is shapeless, flexible, and minimal — is also the thing that bites back in production. There is no distinction between a key you meant to omit and a typo. There is no difference between a number encoded as a string because a legacy client insisted, and a string that was supposed to be a number. Two teams can both ship "JSON APIs" that never interoperate because nobody wrote down what the fields mean.
+
+JSON Schema is a fix for that. It is a small, declarative language — written in JSON — for describing what a valid JSON document looks like. Once you have a schema, you can validate incoming data, generate test fixtures, drive forms, produce API docs, and give your editor autocompletion. Most teams adopt one piece at a time and never look back.
+
+## A minimal example
+
+Suppose your API accepts a "create user" payload with a name, an email, and an optional phone number.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "CreateUser",
+  "required": ["name", "email"],
+  "properties": {
+    "name":  { "type": "string", "minLength": 1 },
+    "email": { "type": "string", "format": "email" },
+    "phone": { "type": "string", "pattern": "^\\+?[0-9 ()-]{5,20}$" }
+  },
+  "additionalProperties": false
+}
+```
+
+Every keyword in there is a declarative constraint. Given this schema, a validator will:
+
+- Reject a payload that is missing `name` or `email`.
+- Reject `name: ""` (fails `minLength`).
+- Reject `email: "not-an-email"` if the validator enforces `format` (some only warn).
+- Reject a payload with an extra field like `username`, because `additionalProperties: false`.
+
+A valid payload is forced into the shape you designed.
+
+## The core building blocks
+
+JSON Schema has about twenty commonly-used keywords. The useful ones divide cleanly into groups.
+
+### Type constraints
+
+```json
+{ "type": "string" }
+{ "type": "integer" }
+{ "type": "number" }
+{ "type": "boolean" }
+{ "type": "object" }
+{ "type": "array" }
+{ "type": "null" }
+```
+
+You can also express "one of several types":
+
+```json
+{ "type": ["string", "null"] }
+```
+
+### Object shape
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": { "type": "integer" },
+    "name": { "type": "string" }
+  },
+  "required": ["id"],
+  "additionalProperties": false
+}
+```
+
+`properties` describes known keys. `required` lists the must-have ones. `additionalProperties: false` forbids anything else. You can also set `additionalProperties` to a schema that applies to any unlisted key.
+
+### Array shape
+
+```json
+{
+  "type": "array",
+  "items": { "type": "string" },
+  "minItems": 1,
+  "uniqueItems": true
+}
+```
+
+Homogeneous arrays use `items`. Tuple-style arrays (positional) use `prefixItems` in the 2020-12 draft, or `items: [..., ...]` in older drafts.
+
+### Value constraints
+
+- Strings: `minLength`, `maxLength`, `pattern` (regex), `format`.
+- Numbers: `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`.
+- Enums: `enum: ["red", "green", "blue"]` restricts a value to a fixed list.
+- Constants: `const: "published"` requires exactly that value.
+
+### Composition
+
+- `allOf: [A, B]` — the data must match both schemas (intersection).
+- `anyOf: [A, B]` — match at least one.
+- `oneOf: [A, B]` — match exactly one (not both).
+- `not: A` — must not match schema A.
+
+`oneOf` with `const` is a common pattern for tagged unions. For example:
+
+```json
+{
+  "oneOf": [
+    { "properties": { "kind": { "const": "circle" }, "radius": { "type": "number" } },
+      "required": ["kind", "radius"] },
+    { "properties": { "kind": { "const": "rect" }, "w": { "type": "number" }, "h": { "type": "number" } },
+      "required": ["kind", "w", "h"] }
+  ]
+}
+```
+
+### References (`$ref`)
+
+You will quickly want to reuse sub-schemas. `$ref` lets you point to another definition by URI or JSON Pointer:
+
+```json
+{
+  "$defs": {
+    "positiveInt": { "type": "integer", "minimum": 1 }
+  },
+  "properties": {
+    "pageSize": { "$ref": "#/$defs/positiveInt" },
+    "maxPages": { "$ref": "#/$defs/positiveInt" }
+  }
+}
+```
+
+## A realistic schema
+
+Here is a more complete schema for an API endpoint that paginates over orders. It combines most of the basics.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ListOrdersResponse",
+  "type": "object",
+  "required": ["data", "pagination"],
+  "additionalProperties": false,
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Order" }
+    },
+    "pagination": {
+      "type": "object",
+      "required": ["next", "has_more"],
+      "properties": {
+        "next":     { "type": ["string", "null"] },
+        "has_more": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "Order": {
+      "type": "object",
+      "required": ["id", "total_cents", "currency", "status"],
+      "properties": {
+        "id":          { "type": "string", "pattern": "^ord_[A-Za-z0-9]{8,}$" },
+        "total_cents": { "type": "integer", "minimum": 0 },
+        "currency":    { "type": "string", "enum": ["USD", "EUR", "KRW"] },
+        "status":      { "type": "string", "enum": ["pending", "paid", "refunded"] },
+        "notes":       { "type": ["string", "null"], "maxLength": 500 }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+```
+
+A validator given this schema and a candidate response can tell you, for example, that order `ord_1` is rejected because its id does not match the pattern, or that `status: "cancelled"` is not in the enum.
+
+## What "valid" really means
+
+Validation answers exactly one question: *does this document satisfy this schema?* It does not guarantee that your business rules hold, and it does not prove that the data is meaningful. It catches a class of errors — shape errors, type errors, range errors — that would otherwise leak through into your application logic.
+
+A good habit is to validate at every trust boundary:
+
+- API input from clients, before you touch it.
+- Data loaded from disk, before you trust its shape.
+- Messages consumed from a queue, before you process them.
+- Responses from a third-party API, before you forward them to your frontend.
+
+Whatever stays inside one process and never crosses a boundary does not need a schema.
+
+## Tooling
+
+Most languages have at least one mature JSON Schema library. A few to know about:
+
+- JavaScript / TypeScript: [Ajv](https://github.com/ajv-validator/ajv), the most-used by far.
+- Python: [jsonschema](https://python-jsonschema.readthedocs.io/) and [fastjsonschema](https://horejsek.github.io/python-fastjsonschema/).
+- Go: [gojsonschema](https://github.com/xeipuuv/gojsonschema) and [santhosh-tekuri/jsonschema](https://github.com/santhosh-tekuri/jsonschema).
+- Rust: [jsonschema](https://docs.rs/jsonschema/).
+- Editors: VS Code, JetBrains, and Neovim will give you autocomplete and inline validation for any file with a `$schema` pointer or a registered file pattern.
+
+## Drafts and compatibility
+
+JSON Schema has evolved through several drafts. The big ones you will see in the wild are Draft 04 (old, but still common), Draft 06, Draft 07 (widely deployed), and 2019-09 / 2020-12 (current). The keywords are mostly compatible across drafts, but some rules change — for example, `items: [A, B]` in old drafts means tuple-style, while `items` in 2020-12 means homogeneous. Always set `$schema` so a validator knows which rules to apply.
+
+## A common objection: "this feels like types in a dynamically-typed language"
+
+It is. That is a feature. JSON travels between systems written in different languages, with different type systems, at different times. A schema is a contract that survives across all of them. If you already use TypeScript on the client and a typed server language, you can generate the schema from the types (or the types from the schema) with tools like [json-schema-to-typescript](https://github.com/bcherny/json-schema-to-typescript).
+
+## Getting started
+
+1. Pick a single endpoint whose bugs have cost you real time. Write a schema for its request body. Validate incoming requests at the boundary.
+2. Ship it. Log validation errors but do not reject unexpected fields at first — you may uncover fields that you use but forgot to document.
+3. Tighten over time. Add `additionalProperties: false` once your logs are clean. Enumerate the valid values for status-like fields. Add patterns for ids and emails.
+4. Keep the schema next to the code that consumes it, not in a separate docs repo. Drift kills schemas.
+
+## Related reading
+
+- [What is JSON?](/guides/what-is-json/) — the data the schema constrains.
+- [The 10 most common JSON syntax errors](/guides/common-json-syntax-errors/) — sometimes the document is invalid before the schema ever runs.
+- Glossary: [JSON Schema](/glossary/json-schema/), [JSON Pointer](/glossary/json-pointer/).

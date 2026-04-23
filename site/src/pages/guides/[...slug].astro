@@ -1,0 +1,196 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { SITE_URL } from '~/consts';
+
+export async function getStaticPaths() {
+  const guides = await getCollection('guides', ({ data }) => data.draft !== true);
+  return guides.map((guide) => ({
+    params: { slug: guide.id },
+    props: { guide },
+  }));
+}
+
+const { guide } = Astro.props;
+const { Content, headings } = await render(guide);
+
+const allGuides = (await getCollection('guides', ({ data }) => data.draft !== true));
+const related = allGuides
+  .filter((g) => g.id !== guide.id && g.data.category === guide.data.category)
+  .slice(0, 3);
+
+const formatted = guide.data.lastUpdated.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+
+const canonical = `/guides/${guide.id}/`;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: guide.data.title,
+  description: guide.data.description,
+  datePublished: guide.data.lastUpdated.toISOString().slice(0, 10),
+  dateModified: guide.data.lastUpdated.toISOString().slice(0, 10),
+  inLanguage: 'en',
+  mainEntityOfPage: new URL(canonical, SITE_URL).toString(),
+  author: { '@type': 'Organization', name: 'Beautifier' },
+  publisher: { '@type': 'Organization', name: 'Beautifier' },
+};
+---
+
+<BaseLayout
+  title={guide.data.title}
+  description={guide.data.description}
+  canonical={canonical}
+>
+  <article class="guide">
+    <div class="container-narrow">
+      <header class="guide-header">
+        <a href="/guides/" class="back-link">← All guides</a>
+        <h1>{guide.data.title}</h1>
+        <p class="guide-meta">
+          <span class="pill">{guide.data.category}</span>
+          <span>Last updated {formatted}</span>
+        </p>
+      </header>
+
+      <div class="prose-content">
+        <Content />
+      </div>
+
+      {related.length > 0 && (
+        <aside class="related">
+          <h2>Related guides</h2>
+          <ul>
+            {related.map((r) => (
+              <li>
+                <a href={`/guides/${r.id}/`}>{r.data.title}</a>
+                <span class="related-desc"> — {r.data.description}</span>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
+
+      <div class="cta-row">
+        <a href="/json/" class="btn btn-primary">Try the JSON beautifier</a>
+        <a href="/glossary/" class="btn">Browse glossary</a>
+      </div>
+
+      <p class="disclaimer">
+        This guide is written for general information. Always validate against
+        your runtime's official parser before relying on any behaviour in
+        production.
+      </p>
+    </div>
+  </article>
+
+  <script
+    type="application/ld+json"
+    set:html={JSON.stringify(jsonLd)}
+  />
+
+  <style>
+    .guide { padding: 2rem 0 3rem; }
+    .guide-header { margin-bottom: 2rem; }
+    .back-link {
+      display: inline-block;
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+    .guide-header h1 {
+      margin: 0 0 0.5rem;
+      font-size: 2rem;
+      line-height: 1.2;
+    }
+    .guide-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+      margin: 0;
+    }
+    .pill {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      background: var(--color-bg-alt);
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--color-text);
+      text-transform: lowercase;
+    }
+
+    .prose-content { font-size: 1.02rem; line-height: 1.72; }
+    .prose-content h2 { margin-top: 2em; font-size: 1.4rem; }
+    .prose-content h3 { margin-top: 1.8em; font-size: 1.15rem; }
+    .prose-content p { margin: 0 0 1em; }
+    .prose-content ul, .prose-content ol { padding-left: 1.5em; margin: 0 0 1em; }
+    .prose-content li { margin-bottom: 0.3em; }
+    .prose-content table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+    .prose-content th, .prose-content td {
+      border: 1px solid var(--color-border);
+      padding: 0.5em 0.75em;
+      text-align: left;
+      vertical-align: top;
+    }
+    .prose-content th { background: var(--color-bg-alt); font-weight: 600; }
+    .prose-content blockquote {
+      border-left: 3px solid var(--color-accent);
+      padding: 0.25em 1em;
+      margin: 1em 0;
+      color: var(--color-text-muted);
+      background: var(--color-bg-alt);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+    .prose-content pre {
+      background: var(--color-code-bg);
+      padding: 1em;
+      border-radius: var(--radius);
+      overflow-x: auto;
+      font-size: 0.92em;
+      border: 1px solid var(--color-border);
+    }
+    .prose-content code {
+      font-family: var(--font-mono);
+      background: var(--color-code-bg);
+      padding: 0.1em 0.35em;
+      border-radius: var(--radius-sm);
+      font-size: 0.92em;
+    }
+    .prose-content pre code { background: transparent; padding: 0; font-size: 1em; }
+
+    .related {
+      margin-top: 2.5rem;
+      padding: 1.25rem 1.5rem;
+      background: var(--color-bg-alt);
+      border-radius: var(--radius);
+      border: 1px solid var(--color-border);
+    }
+    .related h2 { margin-top: 0; font-size: 1.1rem; }
+    .related ul { list-style: none; padding: 0; margin: 0; }
+    .related li { margin-bottom: 0.5rem; }
+    .related a { font-weight: 600; }
+    .related-desc { color: var(--color-text-muted); font-size: 0.92rem; }
+
+    .cta-row {
+      display: flex;
+      gap: 0.75rem;
+      margin: 2rem 0 1rem;
+      flex-wrap: wrap;
+    }
+    .disclaimer {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      border-top: 1px solid var(--color-border);
+      padding-top: 1rem;
+      margin-top: 2rem;
+    }
+  </style>
+</BaseLayout>

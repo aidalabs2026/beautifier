@@ -48,17 +48,22 @@
 - [x] 빌드 검증: `npm run build` 통과 (7 페이지, ~900ms), 워커 번들 1.1 KB
 - [ ] Lighthouse 로컬 실행 → LCP·CLS Good 확인 (**사용자 수동 확인 대상**)
 
-## Phase 2 — 콘텐츠 가이드 10편 + 용어사전 (5~10일, 콘텐츠 양이 변수)
+## Phase 2 — 콘텐츠 가이드 10편 + 용어사전 + FAQ — **완료 2026-04-23**
 
-**AdSense 승인의 병목은 거의 이 단계다.** 양과 질 모두 과소평가 금지.
-
-- [ ] `src/content/guides/*.mdx` 10편 (각 1,500~2,500 단어, 영문)
-  - 상세 목록은 `04-content-plan.md` 참고
-- [ ] `src/content/glossary/*.md` 30+ 항목
-- [ ] `src/content/faq/*.md` 20+ 항목 (카테고리별)
-- [ ] 각 가이드에 최소 1개 이상 코드 예제 + 다이어그램/도표
-- [ ] 도구 페이지와 가이드 간 양방향 내부 링크
-- [ ] 영문 맞춤법·문법 점검 (Grammarly 등)
+- [x] `src/content/guides/*.mdx` **10편** 작성 (각 1,500~2,500 단어, 영문)
+  - basics: what-is-json, json-schema-basics, json-escape-characters
+  - troubleshooting: common-json-syntax-errors
+  - comparison: json-vs-yaml, json-vs-xml
+  - format-guide: jsonl-and-ndjson-explained, pretty-print-vs-minify
+  - strategy: sorting-json-keys-pros-and-cons, when-to-minify-api-payloads
+- [x] `src/content/glossary/*.md` **30 항목** (JSON/XML/HTML/encoding/formatting 전역 커버)
+- [x] `src/content/faq/*.md` **20 항목** (using-the-tool 6, privacy 4, limits 3, formats 5, ads 2)
+- [x] 라우트 페이지 5개: `/guides/`, `/guides/[slug]/`, `/glossary/`, `/glossary/[slug]/`, `/faq/`
+- [x] 네비게이션에 Guides · Glossary · FAQ 추가
+- [x] 홈 페이지에 featured guides 카드 4개 + 섹션 링크
+- [x] JSON-LD: TechArticle (가이드), DefinedTerm (용어), FAQPage (faq)
+- [x] 각 가이드에 실제 작동하는 코드 예제 + 내부 링크 3개 이상
+- [x] 로컬 빌드 50 페이지 통과
 
 ## Phase 3 — OCI 배포 + Let's Encrypt + 첫 CI/CD (1~2일) — **사이트 라이브 2026-04-23**
 

@@ -1,5 +1,10 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const guides = (await getCollection('guides', ({ data }) => data.draft !== true))
+  .sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999))
+  .slice(0, 4);
 ---
 
 <BaseLayout
@@ -42,20 +47,61 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
     </div>
   </section>
 
+  <section class="container">
+    <h2 class="section-h">Featured guides</h2>
+    <div class="card-grid">
+      {guides.map((g) => (
+        <a class="card guide-card" href={`/guides/${g.id}/`}>
+          <h3>{g.data.title}</h3>
+          <p>{g.data.description}</p>
+          <span class="card-arrow">Read →</span>
+        </a>
+      ))}
+    </div>
+    <p class="section-more">
+      <a href="/guides/">Browse all guides</a> ·
+      <a href="/glossary/">Glossary (30+ terms)</a> ·
+      <a href="/faq/">FAQ</a>
+    </p>
+  </section>
+
   <section class="prose">
     <h2>Available tools</h2>
     <ul>
       <li><a href="/json/">JSON Beautifier, Minifier &amp; Validator</a> — available now</li>
-      <li>XML Beautifier — coming in Phase 2</li>
-      <li>HTML Beautifier — coming in Phase 2</li>
+      <li>XML Beautifier — planned</li>
+      <li>HTML Beautifier — planned</li>
     </ul>
-
-    <h2>What's new</h2>
-    <p>
-      This project is in active development. The first release focuses on a
-      solid JSON tool and the legal pages required to responsibly run a public,
-      ad-supported site. Guides and additional formats will follow in the next
-      phases.
-    </p>
   </section>
+
+  <style>
+    .section-h {
+      text-align: center;
+      margin: 2.5rem 0 1rem;
+      font-size: 1.6rem;
+    }
+    .guide-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.12s, transform 0.12s;
+    }
+    .guide-card:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-1px);
+      text-decoration: none;
+    }
+    .card-arrow {
+      color: var(--color-accent);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .section-more {
+      text-align: center;
+      font-size: 0.95rem;
+      color: var(--color-text-muted);
+      margin-top: 1rem;
+    }
+    .section-more a { margin: 0 0.35rem; }
+  </style>
 </BaseLayout>

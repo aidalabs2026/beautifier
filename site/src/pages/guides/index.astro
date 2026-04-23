@@ -1,0 +1,72 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '~/layouts/BaseLayout.astro';
+
+const guides = (await getCollection('guides', ({ data }) => data.draft !== true))
+  .sort((a, b) => {
+    const orderDelta = (a.data.order ?? 999) - (b.data.order ?? 999);
+    if (orderDelta !== 0) return orderDelta;
+    return a.data.title.localeCompare(b.data.title);
+  });
+
+const categoryLabels: Record<string, string> = {
+  basics: 'Basics',
+  'format-guide': 'Format guide',
+  troubleshooting: 'Troubleshooting',
+  comparison: 'Comparison',
+  strategy: 'Strategy',
+  faq: 'FAQ',
+};
+
+const byCategory = guides.reduce<Record<string, typeof guides>>((acc, g) => {
+  (acc[g.data.category] ||= []).push(g);
+  return acc;
+}, {});
+---
+
+<BaseLayout
+  title="Guides"
+  description="In-depth English guides on JSON, data formatting, and the nuances beautifiers, minifiers, and validators hide from you. Written for developers who want to learn, not just copy."
+>
+  <div class="prose">
+    <h1>Guides</h1>
+    <p>
+      Short, opinionated explanations of the formats we work with every day.
+      Each guide includes runnable examples and links to the relevant tool so
+      you can try things as you read.
+    </p>
+
+    {Object.entries(byCategory).map(([cat, items]) => (
+      <section class="guide-section">
+        <h2>{categoryLabels[cat] ?? cat}</h2>
+        <ul class="guide-list">
+          {items.map((g) => (
+            <li>
+              <a href={`/guides/${g.id}/`}>{g.data.title}</a>
+              <p class="guide-desc">{g.data.description}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+
+  <style>
+    .guide-section { margin-top: 2.5rem; }
+    .guide-list { list-style: none; padding: 0; }
+    .guide-list li {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .guide-list li:last-child { border-bottom: 0; }
+    .guide-list a {
+      font-weight: 600;
+      font-size: 1.08rem;
+    }
+    .guide-desc {
+      color: var(--color-text-muted);
+      margin: 0.3rem 0 0;
+      font-size: 0.95rem;
+    }
+  </style>
+</BaseLayout>

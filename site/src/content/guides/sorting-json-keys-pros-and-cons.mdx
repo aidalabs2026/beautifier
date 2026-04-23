@@ -1,0 +1,174 @@
+---
+title: "Should You Sort JSON Keys? Pros, Cons, and Real-World Use Cases"
+description: "Sorting JSON keys alphabetically is a small decision with outsized effects on diffs, signatures, and caching. Here is when to sort, when not to, and how to do it without regret."
+category: "strategy"
+lastUpdated: 2026-04-23
+order: 7
+tags: ["json", "sort", "diff"]
+---
+
+Given two JSON objects with the same keys and values but in a different order, a parser sees identical data. Your eye sees two different documents. Your diff tool sees sixty lines of changes. Your database sees two different cache entries. Your cryptographic signature sees a completely different payload. Key order matters — sometimes a lot.
+
+This guide walks through the real-world effects of sorting JSON keys, when sorting helps, when it hurts, and the pragmatic defaults used by the teams who have thought about this before you did.
+
+## What "sort keys" actually does
+
+Sorting keys means emitting the members of every JSON object in lexicographic order by key name, recursively. Values are not reordered — arrays stay in their original order, since arrays are ordered by definition.
+
+**Before sorting:**
+
+```json
+{
+  "zipCode": "94102",
+  "city":    "San Francisco",
+  "country": "US",
+  "address": {
+    "street": "1 Market St",
+    "apt":    "14"
+  }
+}
+```
+
+**After sorting:**
+
+```json
+{
+  "address": {
+    "apt":    "14",
+    "street": "1 Market St"
+  },
+  "city":    "San Francisco",
+  "country": "US",
+  "zipCode": "94102"
+}
+```
+
+The data is identical. The bytes are not.
+
+## Why sort: the concrete wins
+
+### Diffs that focus on real changes
+
+Version control systems treat JSON files as text. If two commits produce the same data in different orders, your diff is noisy. Sorting before you store a fixture, a snapshot, or a canonical config makes every diff meaningful.
+
+```
+# Unsorted — unhelpful diff
+- "city": "Seoul", "country": "KR", "zipCode": "04524"
++ "country": "KR", "city": "Seoul", "zipCode": "04524"
+
+# Sorted — nothing to diff
+(no change)
+```
+
+If you have ever stared at a noisy `package-lock.json` and wondered why, sorting is one of the things that makes it predictable.
+
+### Cache keys and content hashes
+
+Many systems hash a JSON payload to use as a cache key or content address. If `{a:1,b:2}` and `{b:2,a:1}` produce different hashes, you will have cache misses you did not expect, and two identical payloads will look distinct in a deduplication job. Sorting produces a stable canonical form, which gives you a stable hash.
+
+### Cryptographic signatures
+
+Signing a JSON document before transmission is a common pattern (think webhooks, JWTs, IPFS, some OAuth extensions). The signer and verifier must agree on the exact byte sequence, including key order. Canonical JSON — which sorts keys and normalises whitespace — eliminates a class of signature-mismatch bugs.
+
+The JSON Canonicalization Scheme ([RFC&nbsp;8785](https://www.rfc-editor.org/rfc/rfc8785)) is the standardised way to do this. It uses sorted keys and a specific number representation.
+
+### Deterministic snapshot tests
+
+Snapshot tests compare a produced output against a stored expected output. If the produced output contains objects whose keys appear in a non-deterministic order (hash map iteration in Go, Python ≤ 3.6, etc.), the test is flaky. Sorting the output before storing the snapshot makes the tests deterministic.
+
+## Why not to sort: real costs
+
+### Human-intended ordering is lost
+
+APIs often put the most important fields first. `id`, `type`, and `status` are typically at the top, with less important fields following. Sorting moves `id` below everything starting with a-h. For a human reading the payload, the mental model "important stuff first" is gone.
+
+### Non-determinism masked
+
+If you sort before hashing, you mask the order of incoming data. That is the point. But if you are debugging why two "identical" payloads produce two different hashes, it is useful to know that they were actually ordered differently, not just that they had different content. Logging the pre-sort version helps.
+
+### Slightly larger diffs on first introduction
+
+The first time you sort a large corpus, every file changes. Team members have to review a big commit of "no-op" reorderings before the ongoing benefit kicks in.
+
+### Some parsers emit stable but non-sorted order
+
+Go's `encoding/json` sorts map keys alphabetically when marshaling a map. Python 3.7+ preserves dict insertion order. JavaScript's `JSON.stringify` preserves property order except for integer-like keys. These defaults are mostly sensible; a mandatory sort may actually override a more readable default.
+
+## A decision tree
+
+```
+Is the JSON stored as a cache key, signature, or hash input?
+├── Yes → sort (always, or use RFC 8785 canonical form).
+└── No
+    │
+    Is it checked into git?
+    ├── Yes → sort (diffs matter more than initial author intent).
+    └── No
+        │
+        Is it rendered for a human to read in real time (API response, tool output)?
+        ├── Yes → do not sort. Preserve human-intended order.
+        └── No (pipeline, test fixture)
+            └── sort, because stability trumps style.
+```
+
+In one line: **sort by default, except when a human is about to read the unsorted version directly.**
+
+## Sorting recipes
+
+```javascript
+// JavaScript: sort recursively
+function sortKeys(value) {
+  if (Array.isArray(value)) return value.map(sortKeys);
+  if (value && typeof value === 'object') {
+    return Object.keys(value).sort().reduce((acc, key) => {
+      acc[key] = sortKeys(value[key]);
+      return acc;
+    }, {});
+  }
+  return value;
+}
+JSON.stringify(sortKeys(data), null, 2);
+```
+
+```python
+# Python: sort_keys flag does it for you
+json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False)
+```
+
+```go
+// Go: map keys are sorted by default when marshaling. For structs, order is the field declaration order.
+// If you want structs sorted alphabetically, convert to map[string]any first.
+```
+
+```rust
+// Rust (serde_json): use BTreeMap instead of HashMap for sorted output.
+```
+
+Our [JSON tool](/json/) ships a **Sort keys alphabetically** checkbox. Toggle it on, hit Beautify, and you get the sorted-and-indented form in one shot.
+
+## Canonical JSON vs. "just sorted"
+
+"Sorted keys + default pretty-print" is enough for most use cases. If you need cryptographic determinism, use the formal canonical form:
+
+- RFC 8785 defines exactly one canonical representation for any JSON document: sorted keys, specific number format, no whitespace, specific escaping.
+- Libraries: `canonical-json` (npm), `canonicalize` (Go), `canonicaljson` (Python).
+
+For content hashing in a distributed system, use RFC 8785. For everyday diff noise reduction, plain sorted+pretty is fine.
+
+## Unicode sort order
+
+JSON keys are Unicode strings. "Alphabetical" means different things in different locales. Virtually every canonical-JSON library uses code-point comparison, which gives the same order as sorting by UTF-16 code units in JavaScript or UTF-32 code points in Python. This is deterministic and, crucially, matches the order of [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785).
+
+Gotcha: if your keys contain non-BMP characters (emoji, rare scripts, supplementary planes), make sure your sort function compares code points, not UTF-16 code units. `Array.prototype.sort` in JavaScript sorts UTF-16 code units, which breaks surrogate pairs. Use `localeCompare` with locale `'en-u-kf-false'` or implement code-point comparison explicitly if that matters to you.
+
+## Summary
+
+- Sorting keys is a small syntactic change with big effects on diffing, caching, and signing.
+- Default to **sort** for anything stored, hashed, or diffed.
+- Default to **preserve order** for anything rendered to a human in real time.
+- For signatures, reach for RFC 8785 canonical JSON, not DIY sort.
+
+## Related reading
+
+- [Pretty-print vs. minify](/guides/pretty-print-vs-minify/) — the first half of "canonical form" for JSON.
+- [JSON Schema basics](/guides/json-schema-basics/) — if you are validating shape, you probably also want stable ordering.

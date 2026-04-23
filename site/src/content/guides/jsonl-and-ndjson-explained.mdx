@@ -1,0 +1,167 @@
+---
+title: "JSONL, NDJSON, and JSON Lines: What's the Difference?"
+description: "Three names, one format, and a handful of good reasons to reach for it. Here is why line-delimited JSON keeps appearing in logs, data pipelines, and AI training sets."
+category: "format-guide"
+lastUpdated: 2026-04-23
+order: 5
+tags: ["jsonl", "ndjson", "streaming"]
+---
+
+If you have worked with log files, analytics exports, or datasets from an AI provider, you have met JSON Lines — except you may have met it under a different name. JSONL, NDJSON, and "JSON Lines" are three names for essentially the same thing: one JSON value per line, separated by newlines. The differences are small and the overlap is huge. This guide covers what the format is, why it exists, and the pitfalls that catch newcomers.
+
+## The format in one line
+
+Every line is a complete JSON document. Usually an object. No commas between lines. No wrapping array.
+
+```
+{"id": 1, "name": "Ada",   "role": "admin"}
+{"id": 2, "name": "Linus", "role": "editor"}
+{"id": 3, "name": "Grace", "role": "viewer"}
+```
+
+That is a valid JSONL / NDJSON / JSON Lines file. You can read the first record without parsing the rest. You can append a new record without rewriting the whole file. You can grep it. You can sort it. You can `head -n 1000` it. Every Unix tool that treats a file as a stream of lines works.
+
+## The name situation
+
+The three names have slightly different histories, but you will see them used interchangeably.
+
+- **JSON Lines** ([jsonlines.org](https://jsonlines.org/)) — the name the original spec went with. Extension: `.jsonl`.
+- **JSONL** — the same format, shorter name. Same extension: `.jsonl`.
+- **NDJSON** — "Newline-Delimited JSON", a closely related informal spec at [ndjson.org](http://ndjson.org/). Extension: `.ndjson` or `.jsonl`.
+
+In practice: JSONL and JSON Lines are identical, and NDJSON is 99% identical. The remaining 1% is which line separator you allow (JSONL is strict about `\n`; NDJSON traditionally accepted `\r\n` too). Most tools treat all three names as synonyms. Pick one and stay consistent.
+
+## Why a line-delimited format at all?
+
+Vanilla JSON has a structural problem for large datasets: the whole document is a single top-level value. A one-million-record JSON file looks like this:
+
+```json
+[
+  { "id": 1, ... },
+  { "id": 2, ... },
+  ...
+]
+```
+
+To read any of it, most parsers have to read all of it. To append one record, you have to rewrite the file (or splice just before the `]`, which is fiddly). To stream-process it from stdin, you need a true streaming parser, which not every language has.
+
+JSONL solves all three:
+
+- **Random access on a line boundary.** Tail the last 100 lines and parse those.
+- **Append-only writes.** Open the file in append mode, write one more JSON object, close.
+- **Stream processing.** Every language can read a file line by line. Every language can parse a JSON object. That is all you need.
+
+## Where JSONL shines
+
+- **Logs.** Structured logs are almost always JSONL — Vector, Fluentd, Grafana Loki, cloud logging services all emit or accept it.
+- **Data pipelines.** Kafka Connect, Apache Beam, Dataflow, and similar tools favour line-delimited formats because they parallelise trivially: split the file at newline boundaries, hand each chunk to a worker.
+- **Machine learning datasets.** OpenAI, Anthropic, Hugging Face, and many others use `.jsonl` for training and evaluation data. One example per line, read lazily.
+- **Database exports.** PostgreSQL's `COPY ... TO` with `FORMAT json` emits one object per line. MongoDB's `mongoexport` does too. Keeps exports linear in file size.
+- **CSV replacement.** When your records have nested fields or lists, JSONL stays readable where CSV needs contortions.
+
+## When not to use JSONL
+
+- **When a human needs to read it casually.** A 200-line JSON array with pretty-printing is friendlier than a JSONL file. One-record-per-line is optimised for machines, not for eyes.
+- **When you need atomic views of the whole dataset.** If downstream tools want a single JSON document, they want an array. JSONL requires a wrapping step.
+- **When your records do not fit on a single line.** Large records with embedded multi-line strings become one very long line, which hurts tools that line-buffer.
+- **When compression is critical and records are very small.** JSONL repeats the key names in every record, which is wasteful. Formats like Apache Parquet or Avro are much denser for tabular data.
+
+## Reading JSONL
+
+The code is boring in every language, which is part of the appeal.
+
+```python
+# Python
+import json
+with open('data.jsonl') as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        record = json.loads(line)
+        process(record)
+```
+
+```javascript
+// Node.js
+import { createReadStream } from 'node:fs';
+import { createInterface } from 'node:readline';
+
+const rl = createInterface({
+  input: createReadStream('data.jsonl'),
+  crlfDelay: Infinity,
+});
+
+for await (const line of rl) {
+  if (!line.trim()) continue;
+  const record = JSON.parse(line);
+  process(record);
+}
+```
+
+```go
+// Go
+scanner := bufio.NewScanner(file)
+scanner.Buffer(make([]byte, 1024*1024), 10*1024*1024) // allow large lines
+for scanner.Scan() {
+    var record Record
+    json.Unmarshal(scanner.Bytes(), &record)
+    process(record)
+}
+```
+
+The one thing to watch in Go and Python: the default buffer sizes can be smaller than your longest line. If you have records around 1&nbsp;MB each, bump the buffer.
+
+## Writing JSONL
+
+Equally boring. The key invariant: minify each record, then write a single trailing newline.
+
+```python
+with open('out.jsonl', 'w') as f:
+    for record in records:
+        f.write(json.dumps(record, separators=(',', ':')) + '\n')
+```
+
+```javascript
+import { createWriteStream } from 'node:fs';
+const out = createWriteStream('out.jsonl');
+for (const record of records) {
+  out.write(JSON.stringify(record) + '\n');
+}
+```
+
+Do **not** pretty-print individual records in JSONL. Pretty-printing inserts its own newlines, which destroys the one-record-per-line invariant.
+
+## Common pitfalls
+
+- **Embedded newlines in strings.** A string like `"hello\nworld"` is fine — those `\n` are escape sequences, not actual newlines. But a raw literal newline inside a string would break the file. JSON.stringify handles this correctly; avoid string concatenation.
+- **Trailing empty lines.** Most parsers are tolerant of a trailing empty line. Not all. Strip empty lines defensively when reading.
+- **BOM at the start of the file.** Tools that open a JSONL file in Windows' Notepad may add a byte-order mark. It shows up as an invisible character at the very first line and breaks strict parsers.
+- **`\r\n` line endings.** Some editors (or Git on Windows without `.gitattributes`) will insert `\r\n` into a `.jsonl` file. Most parsers cope; strict ones don't. Normalise with `tr -d '\r'` or set `core.autocrlf=false` for this file.
+- **Pretty-printed array masquerading as JSONL.** Sometimes a tool emits a JSON array with one record per line visually but a `,` at the end of each. That is JSON, not JSONL. Feeding it into a JSONL consumer produces parse errors on the very first line.
+
+## Converting between JSON and JSONL
+
+JSON array → JSONL:
+
+```bash
+jq -c '.[]' data.json > data.jsonl
+```
+
+JSONL → JSON array:
+
+```bash
+jq -s '.' data.jsonl > data.json
+```
+
+The `jq` tool is the pragmatic choice. Most of the conversion bugs I have seen boiled down to someone trying to hand-write this with `awk` and getting quoting wrong.
+
+## A brief note on GeoJSON Lines, LDJSON, and friends
+
+You may occasionally see `.geojsonl` (one GeoJSON feature per line) or "LDJSON" (the same idea, different acronym). They are all the same underlying pattern: take a JSON format, wrap its records in a line-delimited file, call it something with the letter L in it.
+
+## Related reading
+
+- [What is JSON?](/guides/what-is-json/) — the underlying format each line uses.
+- [Pretty-print vs. minify](/guides/pretty-print-vs-minify/) — why JSONL files are always minified per-line.
+- Glossary: [JSONL](/glossary/jsonl/), [NDJSON](/glossary/ndjson/).
