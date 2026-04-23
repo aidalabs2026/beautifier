@@ -2,6 +2,7 @@
 import '~/styles/base.css';
 import Header from '~/components/Header.astro';
 import Footer from '~/components/Footer.astro';
+import CookieBanner from '~/components/CookieBanner.astro';
 import {
   SITE_NAME,
   SITE_TITLE_SUFFIX,
@@ -65,19 +66,22 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site ?? SITE_URL).toString()
     <link rel="sitemap" href="/sitemap-index.xml" />
 
     {GA4_MEASUREMENT_ID && (
-      <>
-        <script
-          is:inline
-          async
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`}
-        />
-        <script is:inline define:vars={{ ga: GA4_MEASUREMENT_ID }}>
+      <script is:inline define:vars={{ ga: GA4_MEASUREMENT_ID }}>
+        (function () {
+          if (!ga) return;
+          try {
+            if (localStorage.getItem('cookie-consent') !== 'accepted') return;
+          } catch (e) { return; }
+          var s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ga;
+          document.head.appendChild(s);
           window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
+          function gtag(){ dataLayer.push(arguments); }
           gtag('js', new Date());
           gtag('config', ga, { anonymize_ip: true });
-        </script>
-      </>
+        })();
+      </script>
     )}
 
     <!-- Inline theme init to avoid FOUC -->
@@ -99,5 +103,6 @@ const ogImageURL = ogImage ? new URL(ogImage, Astro.site ?? SITE_URL).toString()
     <Header />
     <main id="main"><slot /></main>
     <Footer />
+    {GA4_MEASUREMENT_ID && <CookieBanner />}
   </body>
 </html>

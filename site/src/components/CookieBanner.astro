@@ -1,0 +1,80 @@
+---
+// Consent banner shown until the visitor accepts or declines analytics cookies.
+// Paired with the conditional GA4 loader in BaseLayout: GA4 is injected only
+// after localStorage['cookie-consent'] === 'accepted'.
+---
+
+<aside
+  id="cookie-banner"
+  class="cookie-banner"
+  role="dialog"
+  aria-labelledby="cookie-banner-title"
+  aria-live="polite"
+  hidden
+>
+  <div class="cookie-inner">
+    <div class="cookie-text">
+      <strong id="cookie-banner-title">Cookies &amp; analytics</strong>
+      <p>
+        We use a minimal set of cookies: one for your theme preference, and
+        — if you accept — Google Analytics to count page views. Your tool
+        inputs are never sent anywhere. See our
+        <a href="/privacy/">Privacy Policy</a>.
+      </p>
+    </div>
+    <div class="cookie-actions">
+      <button type="button" class="btn btn-sm" data-consent="declined">Decline</button>
+      <button type="button" class="btn btn-sm btn-primary" data-consent="accepted">Accept</button>
+    </div>
+  </div>
+</aside>
+
+<script is:inline>
+  (function () {
+    var el = document.getElementById('cookie-banner');
+    if (!el) return;
+    var decision;
+    try { decision = localStorage.getItem('cookie-consent'); } catch (e) {}
+    if (!decision) {
+      el.hidden = false;
+    }
+    el.querySelectorAll('[data-consent]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var value = btn.getAttribute('data-consent');
+        try { localStorage.setItem('cookie-consent', value); } catch (e) {}
+        el.hidden = true;
+        if (value === 'accepted') {
+          // Reload so the gated GA4 loader in <head> picks up the consent.
+          window.location.reload();
+        }
+      });
+    });
+  })();
+</script>
+
+<style>
+  .cookie-banner {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    padding: 0.9rem 1rem;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+  }
+  .cookie-inner {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    justify-content: space-between;
+  }
+  .cookie-text { flex: 1 1 320px; font-size: 0.9rem; line-height: 1.45; }
+  .cookie-text strong { display: block; margin-bottom: 0.15rem; }
+  .cookie-text p { margin: 0; color: var(--color-text-muted); }
+  .cookie-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+</style>
