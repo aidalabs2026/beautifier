@@ -9,7 +9,7 @@ export const CONTACT_EMAIL = 'facered79@gmail.com';
 // Google Search Console meta-tag verification token.
 // Set after creating the GSC property and choosing the "HTML tag" method.
 // Leave empty to omit the meta entirely.
-export const GSC_VERIFICATION = '';
+export const GSC_VERIFICATION = 'tAy5xjnlcP6nYG7CuBLll7K3n1WvQYe_KsWKCJugDxE';
 
 // Google Analytics 4 Measurement ID (G-XXXXXXXXXX). Leave empty to skip GA4.
 export const GA4_MEASUREMENT_ID = '';
