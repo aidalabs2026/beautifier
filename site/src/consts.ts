@@ -15,10 +15,10 @@ export const GSC_VERIFICATION = 'tAy5xjnlcP6nYG7CuBLll7K3n1WvQYe_KsWKCJugDxE';
 export const GA4_MEASUREMENT_ID = '';
 
 export const NAV_ITEMS: Array<{ href: string; label: string }> = [
-  { href: '/', label: 'Home' },
   { href: '/json/', label: 'JSON' },
+  { href: '/xml/', label: 'XML' },
+  { href: '/html/', label: 'HTML' },
   { href: '/guides/', label: 'Guides' },
-  { href: '/glossary/', label: 'Glossary' },
   { href: '/faq/', label: 'FAQ' },
   { href: '/about/', label: 'About' },
 ];

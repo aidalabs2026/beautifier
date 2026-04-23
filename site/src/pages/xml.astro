@@ -1,0 +1,407 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import { SITE_NAME, SITE_URL } from '~/consts';
+
+const toolJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: `${SITE_NAME} XML Tool`,
+  alternateName: 'XML Beautifier, Minifier & Validator',
+  description:
+    'Free browser-based XML beautifier, minifier, and validator. Runs entirely on your device; your data is never uploaded.',
+  url: SITE_URL + '/xml/',
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Any (modern web browser)',
+  browserRequirements: 'Requires JavaScript. Requires HTML5.',
+  inLanguage: 'en',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  isAccessibleForFree: true,
+};
+---
+
+<BaseLayout
+  title="XML Beautifier, Minifier &amp; Validator"
+  description="Format, minify, and validate XML in your browser. 2-space, 4-space, or tab indentation, CDATA and comment preservation. Your data never leaves your device."
+>
+  <div class="tool-page">
+    <div class="container tool-head">
+      <span class="privacy-badge">🔒 Your data never leaves your browser</span>
+      <h1>XML Beautifier</h1>
+      <p class="tool-intro">
+        Paste XML below and click <strong>Beautify</strong>. Use <strong>Minify</strong>
+        to strip whitespace, or <strong>Validate</strong> to surface parse errors.
+        <code>&lt;!--comments--&gt;</code>, <code>&lt;![CDATA[...]]&gt;</code> and
+        processing instructions are preserved.
+      </p>
+    </div>
+
+    <div class="container">
+      <div class="editor-grid">
+        <section class="editor-pane" aria-labelledby="input-label">
+          <div class="pane-head">
+            <label id="input-label" for="input">Input</label>
+            <div class="pane-actions">
+              <label class="btn btn-sm file-label">
+                Upload file
+                <input type="file" id="file-input" accept=".xml,.svg,.xsl,.xsd,.rss,.atom,.pom,text/xml,application/xml" hidden />
+              </label>
+              <button type="button" class="btn btn-sm" id="clear-btn">Clear</button>
+            </div>
+          </div>
+          <textarea
+            id="input"
+            class="editor-textarea"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            placeholder={'Paste XML here, for example:\n\n<?xml version="1.0" encoding="UTF-8"?>\n<book id="1"><title>The C Programming Language</title><author>Kernighan</author></book>'}
+          ></textarea>
+          <div class="pane-meta" id="input-meta"></div>
+        </section>
+
+        <section class="editor-pane" aria-labelledby="output-label">
+          <div class="pane-head">
+            <label id="output-label" for="output">Output</label>
+            <div class="pane-actions">
+              <button type="button" class="btn btn-sm" id="copy-btn" disabled>Copy</button>
+              <button type="button" class="btn btn-sm" id="download-btn" disabled>Download</button>
+            </div>
+          </div>
+          <textarea
+            id="output"
+            class="editor-textarea"
+            spellcheck="false"
+            autocomplete="off"
+            readonly
+            placeholder="Output appears here…"
+          ></textarea>
+          <div class="pane-meta" id="output-meta"></div>
+        </section>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-buttons">
+          <button type="button" class="btn btn-primary" id="beautify-btn">Beautify</button>
+          <button type="button" class="btn" id="minify-btn">Minify</button>
+          <button type="button" class="btn" id="validate-btn">Validate</button>
+        </div>
+        <div class="toolbar-options">
+          <label>
+            Indent:
+            <select id="indent-select">
+              <option value="2" selected>2 spaces</option>
+              <option value="4">4 spaces</option>
+              <option value="tab">Tab</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div id="status-bar" class="status-bar status-idle" role="status" aria-live="polite">
+        Ready. Keyboard: <kbd>Ctrl</kbd>+<kbd>Enter</kbd> Beautify · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> Minify · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> Validate · <kbd>Ctrl</kbd>+<kbd>K</kbd> Clear
+      </div>
+    </div>
+
+    <noscript>
+      <div class="container">
+        <div class="callout callout-warning">
+          This tool requires JavaScript to run.
+        </div>
+      </div>
+    </noscript>
+
+    <script type="application/ld+json" set:html={JSON.stringify(toolJsonLd)} />
+
+    <section class="prose">
+      <h2>What is XML?</h2>
+      <p>
+        XML (eXtensible Markup Language) is a text-based format for structured
+        documents, standardised by the <a href="https://www.w3.org/TR/xml/" rel="nofollow noopener">W3C in 1998</a>.
+        It is still the backbone of office document formats (DOCX, ODF),
+        industry standards (SOAP, HL7, FIX), publishing formats (DocBook, TEI),
+        SVG graphics, and countless configuration files. For the bigger picture,
+        see the guide on
+        <a href="/guides/json-vs-xml/">JSON vs XML</a>.
+      </p>
+
+      <h2>When to beautify, minify, or validate</h2>
+      <ul>
+        <li><strong>Beautify</strong> when a long-line SOAP response or squashed SVG is impossible to read.</li>
+        <li><strong>Minify</strong> to strip comments and insignificant whitespace for smaller storage or transmission.</li>
+        <li><strong>Validate</strong> to catch malformed documents before they hit a stricter downstream parser.</li>
+      </ul>
+
+      <h2>Common XML gotchas</h2>
+      <ul>
+        <li><strong>Unescaped <code>&amp;</code> in text.</strong> Use <code>&amp;amp;</code>.</li>
+        <li><strong>Unescaped <code>&lt;</code> or <code>&gt;</code> in text.</strong> Use <code>&amp;lt;</code> and <code>&amp;gt;</code> or wrap in <code>&lt;![CDATA[...]]&gt;</code>.</li>
+        <li><strong>Namespace prefix used but not declared</strong> — strict parsers reject.</li>
+        <li><strong>Self-closing a non-void element as HTML-style</strong> — in XML, every element must be closed, either by a close tag or a <code>/&gt;</code>.</li>
+      </ul>
+
+      <h2>Privacy</h2>
+      <p>
+        Parsing happens entirely in your browser. Open DevTools → Network and
+        click Beautify to confirm: no request carries your content. See the
+        <a href="/privacy/">Privacy Policy</a>.
+      </p>
+    </section>
+  </div>
+
+  <style>
+    .tool-page { padding: 1.5rem 0 3rem; }
+    .tool-head {
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: 0.5rem; margin-bottom: 1.25rem;
+    }
+    .tool-head h1 { margin: 0.1em 0 0.25em; font-size: 1.9rem; }
+    .tool-intro { color: var(--color-text-muted); margin: 0; max-width: 780px; }
+
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      height: clamp(480px, calc(100vh - 340px), 820px);
+    }
+    .editor-pane {
+      display: flex; flex-direction: column;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      overflow: hidden; min-height: 0;
+    }
+    .pane-head {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg-alt);
+      font-size: 0.9rem; font-weight: 500;
+    }
+    .pane-head label { font-weight: 600; }
+    .pane-actions { display: flex; gap: 0.35rem; }
+    .file-label { cursor: pointer; display: inline-flex; align-items: center; }
+    .editor-textarea {
+      flex: 1 1 auto; min-height: 0; height: 100%; width: 100%;
+      resize: none; border: 0;
+      padding: 0.9rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.95rem; line-height: 1.55;
+      color: var(--color-text); background: var(--color-surface);
+      white-space: pre; tab-size: 2;
+    }
+    .editor-textarea:focus { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+    .pane-meta {
+      padding: 0.4rem 0.75rem; font-size: 0.8rem;
+      color: var(--color-text-muted);
+      border-top: 1px solid var(--color-border);
+      background: var(--color-bg-alt);
+      min-height: 1.75rem;
+    }
+    .toolbar {
+      display: flex; justify-content: space-between; flex-wrap: wrap;
+      gap: 0.75rem; margin: 1rem 0 0.5rem;
+    }
+    .toolbar-buttons, .toolbar-options {
+      display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+    }
+    .toolbar-options label {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.9rem; color: var(--color-text-muted);
+    }
+    .toolbar-options select {
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface); color: var(--color-text);
+      font: inherit; font-size: 0.9rem;
+    }
+    .status-bar {
+      padding: 0.6rem 0.85rem; border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      border: 1px solid var(--color-border);
+      background: var(--color-bg-alt); color: var(--color-text-muted);
+    }
+    .status-bar kbd {
+      font-family: var(--font-mono); font-size: 0.8rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border); border-bottom-width: 2px;
+      border-radius: 3px; padding: 0 0.3rem;
+      color: var(--color-text);
+    }
+    .status-success { border-color: var(--color-success); background: var(--color-success-bg); color: var(--color-success); }
+    .status-error { border-color: var(--color-error); background: var(--color-error-bg); color: var(--color-error); }
+    @media (max-width: 820px) {
+      .editor-grid { grid-template-columns: 1fr; height: auto; }
+      .editor-pane { height: 60vh; min-height: 340px; }
+    }
+  </style>
+
+  <script>
+    import { beautifyXml, minifyXml, validateXml } from '~/lib/xml-format';
+    import type { IndentValue } from '~/lib/xml-format';
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    type Op = 'beautify' | 'minify' | 'validate';
+
+    const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+    const input = $<HTMLTextAreaElement>('input');
+    const output = $<HTMLTextAreaElement>('output');
+    const indentSelect = $<HTMLSelectElement>('indent-select');
+    const statusBar = $<HTMLElement>('status-bar');
+    const inputMeta = $<HTMLElement>('input-meta');
+    const outputMeta = $<HTMLElement>('output-meta');
+    const copyBtn = $<HTMLButtonElement>('copy-btn');
+    const downloadBtn = $<HTMLButtonElement>('download-btn');
+
+    function getIndent(): IndentValue {
+      const v = indentSelect.value;
+      if (v === 'tab') return '\t';
+      if (v === '4') return '    ';
+      return '  ';
+    }
+
+    function formatBytes(bytes: number): string {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function setStatus(kind: 'idle' | 'success' | 'error', html: string) {
+      statusBar.className = 'status-bar ' +
+        (kind === 'success' ? 'status-success'
+         : kind === 'error' ? 'status-error' : 'status-idle');
+      statusBar.innerHTML = html;
+    }
+
+    function updateInputMeta() {
+      const text = input.value;
+      const bytes = new TextEncoder().encode(text).length;
+      const lines = text ? text.split('\n').length : 0;
+      inputMeta.textContent = text
+        ? `${formatBytes(bytes)} · ${lines.toLocaleString()} line${lines === 1 ? '' : 's'}`
+        : '';
+    }
+
+    function escapeHtml(s: string): string {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function positionCaretAt(ta: HTMLTextAreaElement, line: number, column: number) {
+      const lines = ta.value.split('\n');
+      let offset = 0;
+      for (let i = 0; i < Math.min(line - 1, lines.length); i++) offset += lines[i].length + 1;
+      offset += Math.max(0, column - 1);
+      ta.setSelectionRange(offset, offset);
+    }
+
+    function run(op: Op) {
+      const text = input.value;
+      if (!text.trim()) {
+        setStatus('error', 'Input is empty — paste some XML first.');
+        return;
+      }
+      const start = performance.now();
+      // Always validate first — XML tools should not silently beautify broken input
+      const err = validateXml(text);
+      if (err) {
+        output.value = '';
+        copyBtn.disabled = true;
+        downloadBtn.disabled = true;
+        outputMeta.textContent = '';
+        const loc = err.line !== undefined
+          ? ` <strong>Line ${err.line}${err.column ? ', column ' + err.column : ''}.</strong>`
+          : '';
+        setStatus('error', `✗ ${escapeHtml(err.message)}${loc}`);
+        if (err.line !== undefined) { positionCaretAt(input, err.line, err.column ?? 1); input.focus(); }
+        return;
+      }
+
+      let out = '';
+      if (op === 'validate') {
+        const durationMs = performance.now() - start;
+        output.value = '';
+        outputMeta.textContent = '';
+        copyBtn.disabled = true;
+        downloadBtn.disabled = true;
+        setStatus('success', `✓ Valid XML · parsed in ${durationMs.toFixed(1)} ms`);
+        return;
+      }
+      if (op === 'minify') out = minifyXml(text);
+      else out = beautifyXml(text, getIndent());
+
+      const durationMs = performance.now() - start;
+      const size = new TextEncoder().encode(out).length;
+      output.value = out;
+      outputMeta.textContent = `${formatBytes(size)} · ${durationMs.toFixed(1)} ms`;
+      copyBtn.disabled = false;
+      downloadBtn.disabled = false;
+      const label = op === 'minify' ? 'Minified' : 'Beautified';
+      setStatus('success', `✓ ${label} · ${formatBytes(size)} in ${durationMs.toFixed(1)} ms`);
+    }
+
+    async function copyOutput() {
+      if (!output.value) return;
+      try { await navigator.clipboard.writeText(output.value); }
+      catch { output.select(); document.execCommand('copy'); }
+      setStatus('success', '✓ Copied to clipboard');
+    }
+
+    function downloadOutput() {
+      if (!output.value) return;
+      const blob = new Blob([output.value], { type: 'application/xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'beautified.xml';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function clearAll() {
+      input.value = ''; output.value = '';
+      inputMeta.textContent = ''; outputMeta.textContent = '';
+      copyBtn.disabled = true; downloadBtn.disabled = true;
+      setStatus('idle', 'Cleared.'); input.focus();
+    }
+
+    function handleFile(file: File) {
+      if (file.size > MAX_FILE_SIZE) {
+        setStatus('error', `File is ${formatBytes(file.size)}. Maximum upload size in the browser MVP is ${formatBytes(MAX_FILE_SIZE)}.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        input.value = String(reader.result ?? '');
+        updateInputMeta();
+        setStatus('idle', `Loaded ${escapeHtml(file.name)} (${formatBytes(file.size)}).`);
+      };
+      reader.onerror = () => setStatus('error', 'Failed to read file.');
+      reader.readAsText(file);
+    }
+
+    $<HTMLButtonElement>('beautify-btn').addEventListener('click', () => run('beautify'));
+    $<HTMLButtonElement>('minify-btn').addEventListener('click', () => run('minify'));
+    $<HTMLButtonElement>('validate-btn').addEventListener('click', () => run('validate'));
+    $<HTMLButtonElement>('clear-btn').addEventListener('click', clearAll);
+    copyBtn.addEventListener('click', copyOutput);
+    downloadBtn.addEventListener('click', downloadOutput);
+    input.addEventListener('input', updateInputMeta);
+    $<HTMLInputElement>('file-input').addEventListener('change', (e) => {
+      const f = (e.target as HTMLInputElement).files?.[0];
+      if (f) handleFile(f);
+      (e.target as HTMLInputElement).value = '';
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === 'Enter') { e.preventDefault(); run('beautify'); }
+      else if (e.shiftKey && (e.key === 'M' || e.key === 'm')) { e.preventDefault(); run('minify'); }
+      else if (e.shiftKey && (e.key === 'V' || e.key === 'v')) { e.preventDefault(); run('validate'); }
+      else if (e.key === 'k' || e.key === 'K') { e.preventDefault(); clearAll(); }
+    });
+
+    const prefill = new URLSearchParams(window.location.search).get('input');
+    if (prefill) { input.value = prefill; updateInputMeta(); }
+    input.focus();
+  </script>
+</BaseLayout>

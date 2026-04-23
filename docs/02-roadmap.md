@@ -111,6 +111,16 @@
 
 ## Phase 6 — XML / HTML 확장 + 백엔드(FastAPI or Node) 추가 (5~10일)
 
+**프론트엔드 포맷 도구 선공개 (2026-04-23):**
+
+- [x] `/xml/` — XML beautify / minify / validate (DOMParser + 자체 tokenizer, CDATA·주석·PI 보존)
+- [x] `/html/` — HTML5 void-element aware, `<pre>/<script>/<style>` raw 보존
+- [x] 공통 포맷 유틸 `src/lib/xml-format.ts`, `src/lib/html-format.ts` (worker 없이 main-thread)
+- [x] 네비게이션: JSON · XML · HTML · Guides · FAQ · About
+- [x] 홈페이지 3-tool 카드 섹션
+- [x] SoftwareApplication JSON-LD 각 도구 페이지
+- [ ] XML / HTML 전용 가이드 작성 (Phase 2 연장선)
+
 승인 후 또는 승인과 병행(심사 중 사이트 구조 대변경은 금지 — 작은 페이지 추가는 OK).
 
 - [ ] `/xml` 도구 페이지 + 가이드 3편

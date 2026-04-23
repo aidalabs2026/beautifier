@@ -50,18 +50,39 @@ const orgJsonLd = {
   </section>
 
   <section class="container">
-    <div class="card-grid">
+    <h2 class="section-h">Available tools</h2>
+    <div class="card-grid tools-grid">
+      <a class="card tool-card" href="/json/">
+        <h3>JSON</h3>
+        <p>Beautify, minify, and validate JSON. Syntax errors with line and column. Sort keys alphabetically. Upload files up to 5&nbsp;MB.</p>
+        <span class="card-arrow">Open →</span>
+      </a>
+      <a class="card tool-card" href="/xml/">
+        <h3>XML</h3>
+        <p>Format XML documents with CDATA, processing-instruction, and comment preservation. Validate via the browser's native parser.</p>
+        <span class="card-arrow">Open →</span>
+      </a>
+      <a class="card tool-card" href="/html/">
+        <h3>HTML</h3>
+        <p>HTML5 beautifier that understands void elements and preserves <code>pre</code>, <code>script</code>, and <code>style</code> contents.</p>
+        <span class="card-arrow">Open →</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="container">
+    <div class="card-grid reason-grid">
       <article class="card">
         <h3>Fast by default</h3>
         <p>Static site built with Astro. No sluggish ad-heavy layouts. 1&nbsp;MB JSON parses in under 200&nbsp;ms on modern devices.</p>
       </article>
       <article class="card">
         <h3>Private by design</h3>
-        <p>JSON parsing happens in a Web Worker on your device. Your code is never sent to our servers in the MVP.</p>
+        <p>All parsing and formatting runs on your device. Your code is never sent to our servers.</p>
       </article>
       <article class="card">
         <h3>More than a tool</h3>
-        <p>Each format page ships with a short guide and a glossary of related terms so you can learn while you work.</p>
+        <p>Each format page ships with short guides and a glossary of related terms so you can learn while you work.</p>
       </article>
       <article class="card">
         <h3>Accessible &amp; mobile-friendly</h3>
@@ -88,15 +109,6 @@ const orgJsonLd = {
     </p>
   </section>
 
-  <section class="prose">
-    <h2>Available tools</h2>
-    <ul>
-      <li><a href="/json/">JSON Beautifier, Minifier &amp; Validator</a> — available now</li>
-      <li>XML Beautifier — planned</li>
-      <li>HTML Beautifier — planned</li>
-    </ul>
-  </section>
-
   <script type="application/ld+json" set:html={JSON.stringify(siteJsonLd)} />
   <script type="application/ld+json" set:html={JSON.stringify(orgJsonLd)} />
 
@@ -106,17 +118,20 @@ const orgJsonLd = {
       margin: 2.5rem 0 1rem;
       font-size: 1.6rem;
     }
-    .guide-card {
+    .guide-card, .tool-card {
       display: block;
       text-decoration: none;
       color: inherit;
       transition: border-color 0.12s, transform 0.12s;
     }
-    .guide-card:hover {
+    .guide-card:hover, .tool-card:hover {
       border-color: var(--color-accent);
       transform: translateY(-1px);
       text-decoration: none;
     }
+    .tools-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .tool-card h3 { font-size: 1.25rem; margin-bottom: 0.4rem; }
+    .reason-grid { margin-top: 1.5rem; }
     .card-arrow {
       color: var(--color-accent);
       font-weight: 600;
